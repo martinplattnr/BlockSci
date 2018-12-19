@@ -98,12 +98,22 @@ namespace blocksci {
         
         ranges::any_view<OutputPointer> getOutputPointers() const;
         int64_t calculateBalance(BlockHeight height) const;
+        // get balances for each related chain
+        std::vector<std::pair<uint8_t, int64_t>> calculateBalances(BlockHeight height) const;
+
         ranges::any_view<Output> getOutputs() const;
         ranges::any_view<Input> getInputs() const;
+
+        std::vector<std::pair<uint8_t, ranges::any_view<Output>>> getOutputs(std::vector<uint8_t> chainIds) const;
+        std::vector<Output> getOutputs(uint8_t chainId) const;
+
+        std::vector<std::pair<uint8_t, ranges::any_view<Input>>> getInputs(std::vector<uint8_t> chainIds) const;
+        std::vector<Input> getInputs(uint8_t chainId) const;
+
         std::vector<Transaction> getTransactions() const;
         ranges::any_view<Transaction> getOutputTransactions() const;
         std::vector<Transaction> getInputTransactions() const;
-        
+
         std::string fullType() const;
     };
     

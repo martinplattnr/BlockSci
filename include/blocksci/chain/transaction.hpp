@@ -148,6 +148,25 @@ namespace blocksci {
         }
         
         Block block() const;
+
+        // get transactions with the same tx hash (forks without replay protection)
+        // can be implemented as a range query on HashIndex
+        // for all chains
+        std::vector<Transaction> getDuplicates() const;
+        // for the given chain
+        Transaction getDuplicates(uint8_t chainId) const;
+        // for the given chains
+        Transaction getDuplicates(std::vector<uint8_t> chainIds) const;
+
+        // check whether other transactions with the same tx hash exists
+        // can be implemented as a range query on HashIndex as well
+        bool hasDuplicates() const;
+        bool hasDuplicate(uint8_t chainId) const;
+        bool hasDuplicate(std::vector<uint8_t> chainIds) const;
+
+        uint8_t getChainId() const {
+            return getAccess()->config.chainConfig.coinName;
+        }
     };
     
     inline bool BLOCKSCI_EXPORT operator==(const Transaction& a, const Transaction& b) {

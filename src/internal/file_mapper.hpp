@@ -133,16 +133,18 @@ namespace blocksci {
     struct SimpleFileMapper<mio::access_mode::read> {
     private:
         mio::basic_mmap<mio::access_mode::read, char> file;
+        OffsetType mapOffset;
         FileInfo fileInfo;
     public:
-        
-        SimpleFileMapper(const filesystem::path &path_) : fileInfo(path_.str() + ".dat") {
+
+        SimpleFileMapper(const filesystem::path &path_, OffsetType mapOffset_ = mio::map_entire_file) :
+        fileInfo(path_.str() + ".dat"), mapOffset(mapOffset_) {
             openFile();
         }
-        
+
         void openFile() {
             std::error_code error;
-            file.map(fileInfo.path.str(), 0, mio::map_entire_file, error);
+            file.map(fileInfo.path.str(), 0, mapOffset, error);
 //            if(error) {
 //                throw error;
 //            }
@@ -181,6 +183,7 @@ namespace blocksci {
     struct SimpleFileMapper<mio::access_mode::write> : public SimpleFileMapperBase<mio::access_mode::write> {
     private:
         mio::basic_mmap<mio::access_mode::write, char> file;
+        OffsetType mapOffset;
         FileInfo fileInfo;
         OffsetType writePos;
         static constexpr OffsetType maxBufferSize = 50000000;
@@ -213,15 +216,14 @@ namespace blocksci {
         }
     public:
         static constexpr auto mode = mio::access_mode::write;
-        
-        SimpleFileMapper(const filesystem::path &path) : fileInfo(path.str() + ".dat") {
+        SimpleFileMapper(const filesystem::path &path, OffsetType _mapOffset = mio::map_entire_file) : fileInfo(path.str() + ".dat"), mapOffset(_mapOffset) {
             openFile();
             writePos = size();
         }
         
         void openFile() {
             std::error_code error;
-            file.map(fileInfo.path.str(), 0, mio::map_entire_file, error);
+            file.map(fileInfo.path.str(), 0, mapOffset, error);
 //            if(error) {
 //                throw error;
 //            }
@@ -383,19 +385,24 @@ namespace blocksci {
     template <typename T, mio::access_mode mode>
     struct FixedSizeFileMapper {
     private:
+        OffsetType mapOffsetBytes;
+        uint32_t mapOffsetItems;
         SimpleFileMapper<mode> dataFile;
         OffsetType getPos(OffsetType index) const {
             return index * static_cast<OffsetType>(sizeof(T));
         }
-        
+
     public:
         using size_type = uint64_t;
         using difference_type = std::ptrdiff_t;
         using pointer = add_ptr_t<T>;
         using const_pointer = add_const_ptr_t<T>;
 
-        
-        explicit FixedSizeFileMapper(filesystem::path path) : dataFile(std::move(path)) {}
+        // offset by number of items to skip
+        explicit FixedSizeFileMapper(filesystem::path path, uint32_t mapOffsetItems_ = 0) : dataFile(std::move(path), getPos(mapOffsetItems_)), mapOffsetItems(mapOffsetItems_) {}
+
+        // offset by number of bytes to skip
+        explicit FixedSizeFileMapper(filesystem::path path, OffsetType mapOffset_ = mio::map_entire_file) : dataFile(std::move(path), mapOffset_), mapOffset(mapOffset_) {}
         
         const_pointer operator[](OffsetType index) const {
             assert(index < size());

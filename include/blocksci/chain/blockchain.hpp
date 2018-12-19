@@ -39,6 +39,8 @@ namespace blocksci {
         void reload();
         
         uint32_t addressCount(AddressType::Enum type) const;
+
+        uint8_t getChainId() const;
     };
     
     uint32_t BLOCKSCI_EXPORT txCount(Blockchain &chain);

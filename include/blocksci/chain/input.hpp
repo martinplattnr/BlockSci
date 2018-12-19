@@ -96,13 +96,25 @@ namespace blocksci {
 
         // Get the Transaction that contains the output that is spent by this input
         Transaction getSpentTx() const;
+        Transaction getSpentTx(uint8_t chainId) const;
+
+        std::vector<std::pair<uint8_t, Transaction>> getSpentTxes() const;
+        std::vector<std::pair<uint8_t, Transaction>> getSpentTxes(std::vector<uint8_t> chainIds) const;
 
         // Get OutputPointer of the output that this input spends
         OutputPointer getSpentOutputPointer() const {
             return {inout->getLinkedTxNum(), *spentOutputNum};
         }
 
+        // Get OutputPointer of the outputs that this input spends
+        OutputPointer getSpentOutputPointers() const;
+        OutputPointer getSpentOutputPointers(uint8_t chainId) const;
+        OutputPointer getSpentOutputPointers(std::vector<uint8_t> chainIds) const;
+
         Output getSpentOutput() const;
+
+
+        uint8_t getChainId() const;
     };
     
     inline bool BLOCKSCI_EXPORT operator==(const Input& a, const Input& b) {
