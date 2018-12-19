@@ -14,10 +14,19 @@
 #include <memory>
 
 namespace blocksci {
+    // separate storage
     class ChainAccess;
+
+    // shared storage
     class ScriptAccess;
+
+    // shared or separate storage
     class AddressIndex;
+
+    // shared storage
     class HashIndex;
+
+    // open issue
     class MempoolIndex;
 
     /* This class wraps and manages all data and index access classes
@@ -102,12 +111,15 @@ namespace blocksci {
         }
 
         HashIndex &getHashIndex() {
+            // return the hashIndex of the root (top-most) chain
             return *hashIndex;
         }
         
         operator DataConfiguration() const { return config; }
         
         void reload();
+
+        uint8_t getChainId() const;
     };
 }
 

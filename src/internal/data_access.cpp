@@ -19,11 +19,13 @@ namespace blocksci {
 
     DataAccess::DataAccess(DataConfiguration config_) :
     config(std::move(config_)),
-    chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg)},
+    chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.getChainConfig().parentChainDirectory, config.getChainConfig().forkDataDirectories)},
     scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
     addressIndex{std::make_unique<AddressIndex>(config.addressDBFilePath(), true)},
     hashIndex{std::make_unique<HashIndex>(config.hashIndexFilePath(), true)},
-    mempoolIndex{std::make_unique<MempoolIndex>(config.mempoolDirectory())} {}
+    mempoolIndex{std::make_unique<MempoolIndex>(config.mempoolDirectory())} {
+
+    }
     
     DataAccess::DataAccess(DataAccess &&) = default;
     DataAccess &DataAccess::operator=(DataAccess &&) = default;
@@ -33,5 +35,9 @@ namespace blocksci {
         chain->reload();
         scripts->reload();
         mempoolIndex->reload();
+    }
+
+    ChainId DataAccess::getChainId() const {
+        return config.chainConfig.chainId;
     }
 }

@@ -113,6 +113,8 @@ namespace blocksci {
         Transaction coinbaseTx() const {
             return (*this)[0];
         }
+
+        uint8_t getChainId() const;
     };
     
     inline bool BLOCKSCI_EXPORT isSegwit(const Block &block) {

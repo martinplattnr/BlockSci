@@ -42,10 +42,21 @@ namespace blocksci {
         
         Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded, DataAccess &access_) :
         access(&access_), inout(&inout_), blockHeight(blockHeight_), pointer(pointer_) {
-            if (inout->getLinkedTxNum() < maxTxLoaded) {
-                spendingTxIndex = inout->getLinkedTxNum();
-            } else {
-                spendingTxIndex = 0;
+            /* TODO: getSpendingTx issue
+             *
+             */
+            if (blockHeight < access->getChain().forkBlockHeight) {
+                //
+                // for pre-fork data, get spendingTxIndex from separate file, as the Inout only cointains data from the parent (= main) chain
+                // eg. a FixedSizeFileMapper<uint32_t>, accessed by tx index
+            }
+            else {
+                // get spendingTxIndex from tx_data.dat file of the fork itself
+                if (inout->getLinkedTxNum() < maxTxLoaded) {
+                    spendingTxIndex = inout->getLinkedTxNum();
+                } else {
+                    spendingTxIndex = 0;
+                }
             }
         }
         
@@ -61,6 +72,9 @@ namespace blocksci {
         ranges::optional<uint32_t> getSpendingTxIndex() const {
             return spendingTxIndex > 0 ? ranges::optional<uint32_t>{spendingTxIndex} : ranges::nullopt;
         }
+
+        // Get the tx numbers of the txes that spend this output (in one of its inputs)
+        std::vector<std::pair<uint8_t, uint32_t>> getSpendingTxIndexes() const;
         
         uint32_t txIndex() const {
             return pointer.txNum;
@@ -100,6 +114,16 @@ namespace blocksci {
         ranges::optional<Input> getSpendingInput() const;
 
         ranges::optional<InputPointer> getSpendingInputPointer() const;
+
+        uint8_t getChainId() const;
+
+        // get all transactions that spend this output
+        std::vector<std::pair<uint8_t, Transaction>> getSpendingTxes() const;
+
+        // Get the Inputs that spend this Output (possibly on several chains)
+        std::vector<std::pair<uint8_t, Input>> getSpendingInputs() const;
+
+        std::vector<std::pair<uint8_t, InputPointer>> getSpendingInputPointers() const;
     };
     
     inline bool BLOCKSCI_EXPORT operator==(const Output& a, const Output& b) {
