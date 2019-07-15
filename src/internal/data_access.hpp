@@ -104,8 +104,9 @@ namespace blocksci {
         HashIndex &getHashIndex() {
             return *hashIndex;
         }
-        
-        operator DataConfiguration() const { return config; }
+
+        // todo: commented to prevent compiler error
+        //operator DataConfiguration() const { return config; }
         
         void reload();
     };

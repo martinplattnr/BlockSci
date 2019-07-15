@@ -21,12 +21,13 @@ namespace blocksci {
 
     /** Represents one Block of the blockchain */
     class BLOCKSCI_EXPORT Block : public TransactionRange {
-        /** Contains raw block data from the chain/block.dat file */
-        const RawBlock *rawBlock;
-        
         Block(const RawBlock *rawBlock_, BlockHeight blockNum_, DataAccess &access_);
-        
+
     public:
+        /** Contains raw block data from the chain/block.dat file */
+        // @todo: should be private. made public for debugging reasons
+        const RawBlock *rawBlock;
+
         Block() = default;
         Block(const RawBlock *rawBlock_, const Transaction &firstTx) : TransactionRange({rawBlock_->firstTxIndex, rawBlock_->firstTxIndex + rawBlock_->txCount}, firstTx), rawBlock(rawBlock_) {}
         

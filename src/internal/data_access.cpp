@@ -19,11 +19,24 @@ namespace blocksci {
 
     DataAccess::DataAccess(DataConfiguration config_) :
     config(std::move(config_)),
-    chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg)},
-    scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
+    // @todo: add ChainAccess constructor for ChainAccess(config) that creates nested/linked ChainAccess objects
+    //chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.chainConfig.parentChainConfigPath, config.chainConfig.firstForkedBlockHeight)},
+    chain{std::make_unique<ChainAccess>(config)},
+
+    scripts{std::make_unique<ScriptAccess>(config.rootDataConfiguration().scriptsDirectory())},
+    //scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
     addressIndex{std::make_unique<AddressIndex>(config.addressDBFilePath(), true)},
     hashIndex{std::make_unique<HashIndex>(config.hashIndexFilePath(), true)},
-    mempoolIndex{std::make_unique<MempoolIndex>(config.mempoolDirectory())} {}
+    mempoolIndex{std::make_unique<MempoolIndex>(config.mempoolDirectory())} {
+        //ChainConfiguration* current;
+        //current = &config.chainConfig;
+
+        //ChainAccess ca{config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.chainConfig.firstForkedBlockHeight};
+
+        //while (current->parentChainConfiguration) {
+            //current = current->parentChainConfiguration;
+        //}
+    }
     
     DataAccess::DataAccess(DataAccess &&) = default;
     DataAccess &DataAccess::operator=(DataAccess &&) = default;

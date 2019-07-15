@@ -18,10 +18,14 @@
 #include <blocksci/core/raw_transaction.hpp>
 #include <blocksci/core/typedefs.hpp>
 #include <blocksci/core/transaction_data.hpp>
+#include "data_configuration.hpp"
+#include "chain_access.hpp"
 
 #include <wjfilesystem/path.h>
 
 #include <algorithm>
+#include <iostream>
+#include <memory>
 
 namespace blocksci {
 
@@ -123,6 +127,13 @@ namespace blocksci {
 
         bool errorOnReorg = false;
 
+        std::unique_ptr<const ChainAccess> parentChain;
+        // std::vector<std::unique_ptr<ChainAccess>> forkedChains;
+        BlockHeight firstForkedBlockHeight = 0;
+        uint32_t forkTxIndex = 0;
+        uint64_t forkInputIndex = 0;
+        
+
         void reorgCheck() const {
             if (errorOnReorg && lastBlockHash != *lastBlockHashDisk) {
                 throw ReorgException();
@@ -135,8 +146,19 @@ namespace blocksci {
             } else {
                 maxHeight = blocksIgnored;
             }
+
+            // set forkTxIndex from firstForkedBlockHeight
+            if (maxHeight >= firstForkedBlockHeight && firstForkedBlockHeight > BlockHeight(0)) {
+                auto firstForkedBlock = blockFile[firstForkedBlockHeight];
+                forkTxIndex = firstForkedBlock->firstTxIndex;
+                std::cout << "forkTxIndex = " << forkTxIndex << std::endl;
+                forkInputIndex = 0; // TODO
+            }
+
             if (maxHeight > BlockHeight(0)) {
+                std::cout << "first blockFile access from " << getChainType() << " for height " << static_cast<OffsetType>(maxHeight) - 1 << std::endl;
                 auto maxLoadedBlock = blockFile[static_cast<OffsetType>(maxHeight) - 1];
+                // auto maxLoadedBlock = getBlock(maxHeight - 1);
                 lastBlockHash = maxLoadedBlock->hash;
                 _maxLoadedTx = maxLoadedBlock->firstTxIndex + maxLoadedBlock->txCount;
                 lastBlockHashDisk = &maxLoadedBlock->hash;
@@ -151,10 +173,68 @@ namespace blocksci {
                 ss << "Block data corrupted. Tx file has " << txFile.size() << " transaction, but max tx to load is tx " << _maxLoadedTx;
                 throw std::runtime_error(ss.str());
             }
+
+            std::cout << "setup(): " << std::endl;
+            std::cout << "  - type = " << getChainType() << std::endl;
+            std::cout << "  - firstForkedBlockHeight = " << firstForkedBlockHeight << std::endl;
+            std::cout << "  - forkTxIndex = " << forkTxIndex << std::endl;
+            std::cout << std::endl << std::endl;
         }
 
     public:
-        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg) :
+        /*
+        explicit ChainAccess(ChainConfiguration currentChainConfiguration) :
+        blockFile(blockFilePath(config_.chainDirectory())),
+        blockCoinbaseFile(blockCoinbaseFilePath(config_.chainDirectory())),
+        txFile(txFilePath(config_.chainDirectory())),
+        txVersionFile(txVersionFilePath(config_.chainDirectory())),
+        txFirstInputFile(firstInputFilePath(config_.chainDirectory())),
+        txFirstOutputFile(firstOutputFilePath(config_.chainDirectory())),
+        inputSpentOutputFile(inputSpentOutNumFilePath(config_.chainDirectory())),
+        sequenceFile(sequenceFilePath(config_.chainDirectory())),
+        txHashesFile(txHashesFilePath(config_.chainDirectory())),
+        blocksIgnored(config_.blocksIgnored),
+        errorOnReorg(config_.errorOnReorg),
+        firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
+            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
+            std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
+
+            if (config_.chainConfig.parentChainConfiguration) {
+                // @todo: create ChainAccess
+                std::cout << "parent chain config is available" << std::endl;
+            }
+
+            setup();
+        }
+        */
+
+        explicit ChainAccess(DataConfiguration& config_) :
+        blockFile(blockFilePath(config_.chainDirectory())),
+        blockCoinbaseFile(blockCoinbaseFilePath(config_.chainDirectory())),
+        txFile(txFilePath(config_.chainDirectory())),
+        txVersionFile(txVersionFilePath(config_.chainDirectory())),
+        txFirstInputFile(firstInputFilePath(config_.chainDirectory())),
+        txFirstOutputFile(firstOutputFilePath(config_.chainDirectory())),
+        inputSpentOutputFile(inputSpentOutNumFilePath(config_.chainDirectory())),
+        sequenceFile(sequenceFilePath(config_.chainDirectory())),
+        txHashesFile(txHashesFilePath(config_.chainDirectory())),
+        blocksIgnored(config_.blocksIgnored),
+        errorOnReorg(config_.errorOnReorg),
+        firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
+        //parentChain(std::make_unique<ChainAccess>(config)) {
+            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
+            std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
+
+            if (config_.parentDataConfiguration) {
+                this->parentChain = std::make_unique<ChainAccess>(*config_.parentDataConfiguration);
+                std::cout << "parent chain config is available" << std::endl;
+            }
+
+            setup();
+        }
+
+        /*
+        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg, BlockHeight firstForkedBlockHeight) :
         blockFile(blockFilePath(baseDirectory)),
         blockCoinbaseFile(blockCoinbaseFilePath(baseDirectory)),
         txFile(txFilePath(baseDirectory)),
@@ -165,10 +245,38 @@ namespace blocksci {
         sequenceFile(sequenceFilePath(baseDirectory)),
         txHashesFile(txHashesFilePath(baseDirectory)),
         blocksIgnored(blocksIgnored),
-        errorOnReorg(errorOnReorg) {
+        errorOnReorg(errorOnReorg),
+        firstForkedBlockHeight(firstForkedBlockHeight) {
+            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
+            std::cout << "baseDirectory: " << baseDirectory << std::endl;
             setup();
         }
 
+<<<<<<< HEAD
+=======
+        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg, const filesystem::path &parentChainConfigPath, BlockHeight firstForkedBlockHeight) :
+        blockFile(blockFilePath(baseDirectory), firstForkedBlockHeight),
+        blockCoinbaseFile(blockCoinbaseFilePath(baseDirectory)),
+        txFile(txFilePath(baseDirectory)),
+        txVersionFile(txVersionFilePath(baseDirectory)),
+        txFirstInputFile(firstInputFilePath(baseDirectory)),
+        txFirstOutputFile(firstOutputFilePath(baseDirectory)),
+        inputSpentOutputFile(inputSpentOutNumFilePath(baseDirectory)),
+        sequenceFile(sequenceFilePath(baseDirectory)),
+        txHashesFile(txHashesFilePath(baseDirectory)),
+        blocksIgnored(blocksIgnored),
+        errorOnReorg(errorOnReorg),
+        parentChain(std::make_unique<const ChainAccess>(parentChainConfigPath, blocksIgnored, errorOnReorg, 0)),
+        firstForkedBlockHeight(firstForkedBlockHeight)
+        {
+            std::cout << "Initializing ChainAccess with parentChainConfigPath parameter." << std::endl;
+            std::cout << "baseDirectory: " << baseDirectory << std::endl;
+            std::cout << "parentChainConfigPath: " << parentChainConfigPath << std::endl;
+            setup();
+        }
+        */
+        
+>>>>>>> feat: change configuration and data access classes to support forks
         static filesystem::path txFilePath(const filesystem::path &baseDirectory) {
             return baseDirectory/"tx";
         }
@@ -210,60 +318,139 @@ namespace blocksci {
             if (errorOnReorg && txIndex >= _maxLoadedTx) {
                 throw std::out_of_range("Transaction index out of range");
             }
-            auto blockBegin = blockFile[0];
-            auto blockEnd = blockFile[static_cast<OffsetType>(maxHeight) - 1] + 1;
+            auto blockBegin = getBlock(0);
+            //auto blockEnd = getBlock(static_cast<OffsetType>(maxHeight) - 1) + 1;
+
+            // todo: bounds checking
+            while (txIndex >= blockBegin->firstTxIndex) {
+                blockBegin++;
+            }
+            blockBegin--;
+
+            return static_cast<BlockHeight>(blockBegin->height);
+
+            /*
+            blockEnd = getBlock(static_cast<OffsetType>(maxHeight) - 1) + 1;
+            auto i = 5;
+            // this iterator-based approach does not work anymore, as the forked blocks are mapped to another area of the virtual address space
             auto it = std::upper_bound(blockBegin, blockEnd, txIndex, [](uint32_t index, const RawBlock &b) {
                 return index < b.firstTxIndex;
             });
             it--;
             return static_cast<BlockHeight>(std::distance(blockBegin, it));
+            */
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
             reorgCheck();
-            return blockFile[static_cast<OffsetType>(blockHeight)];
+
+            if (blockHeight >= firstForkedBlockHeight) {
+                std::cout << getChainType() << ".getBlock(" << blockHeight << ")" << std::endl;
+                return blockFile[static_cast<OffsetType>(blockHeight)];
+            }
+            else if (parentChain) {
+                return parentChain->getBlock(blockHeight);
+            }
+            return nullptr;
+
+            /*
+            if (parentChain && blockHeight < 200) {
+                return (*parentChain).blockFile[static_cast<OffsetType>(blockHeight)];
+            }
+            */
+            //return blockFile[static_cast<OffsetType>(blockHeight)];
         }
 
         const uint256 *getTxHash(uint32_t index) const {
             reorgCheck();
-            return txHashesFile[index];
+
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getTxHash(" << index << ")" << std::endl;
+                return txHashesFile[index];
+            }
+            else if (parentChain) {
+                return parentChain->getTxHash(index);
+            }
+            return nullptr;
+
+            //return txHashesFile[index];
         }
 
         const RawTransaction *getTx(uint32_t index) const {
             reorgCheck();
-            return txFile.getData(index);
+
+            if (index >= forkTxIndex) {
+                std::cout << getChainType() << ".getTx(" << index << ")" << std::endl;
+                return txFile.getData(index);
+            }
+            else {
+                return parentChain->getTx(index);
+            }
+            return nullptr;
         }
 
         const int32_t *getTxVersion(uint32_t index) const {
             reorgCheck();
-            return txVersionFile[index];
+
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getTxVersion(" << index << ")" << std::endl;
+                return txVersionFile[index];
+            }
+            else if (parentChain) {
+                return parentChain->getTxVersion(index);
+            }
+            return nullptr;
+
+            //return txVersionFile[index];
         }
 
         const uint32_t *getSequenceNumbers(uint32_t index) const {
             reorgCheck();
-            return sequenceFile[static_cast<OffsetType>(*txFirstInputFile[index])];
+
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getSequenceNumbers(" << index << ")" << std::endl;
+                return sequenceFile[static_cast<OffsetType>(getFirstInputNumber(index))];
+            }
+            else if (parentChain) {
+                return parentChain->getSequenceNumbers(index);
+            }
+            return nullptr;
+
+            //return sequenceFile[static_cast<OffsetType>(*txFirstInputFile[index])];
         }
 
         const uint16_t *getSpentOutputNumbers(uint32_t index) const {
             reorgCheck();
-            return inputSpentOutputFile[static_cast<OffsetType>(*txFirstInputFile[index])];
+
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getSpentOutputNumbers(" << index << ")" << std::endl;
+                return inputSpentOutputFile[static_cast<OffsetType>(getFirstInputNumber(index))];
+            }
+            else if (parentChain) {
+                return parentChain->getSpentOutputNumbers(index);
+            }
+            return nullptr;
+
+            //return inputSpentOutputFile[static_cast<OffsetType>(*txFirstInputFile[index])];
         }
 
         /** Get TxData object for given tx number */
         TxData getTxData(uint32_t index) const {
             reorgCheck();
             // Blockchain-wide number of first input for the given tx
-            auto firstInputNum = static_cast<OffsetType>(*txFirstInputFile[index]);
+            //auto firstInputNum = static_cast<OffsetType>(*txFirstInputFile[index]);
+            auto firstInputNum = static_cast<OffsetType>(getFirstInputNumber(index));
             const uint16_t *inputsSpent = nullptr;
             const uint32_t *sequenceNumbers = nullptr;
+            // TODO: make fork-aware
             if (firstInputNum < inputSpentOutputFile.size()) {
                 inputsSpent = inputSpentOutputFile[firstInputNum];
                 sequenceNumbers = sequenceFile[firstInputNum];
             }
             return {                   // construct TxData object
-                txFile.getData(index), // const RawTransaction *rawTx
-                txVersionFile[index],  // const int32_t *version
-                txHashesFile[index],   // const uint256 *hash
+                getTx(index),          // const RawTransaction *rawTx
+                getTxVersion(index),    // const int32_t *version
+                getTxHash(index),       // const uint256 *hash
                 inputsSpent,           // const uint16_t *spentOutputNums
                 sequenceNumbers        // const uint32_t *sequenceNumbers
             };
@@ -276,25 +463,28 @@ namespace blocksci {
         uint64_t inputCount() const {
             if (_maxLoadedTx > 0) {
                 auto lastTx = getTx(_maxLoadedTx - 1);
-                return *txFirstInputFile[_maxLoadedTx - 1] + lastTx->inputCount;
-            } else {
-                return 0;
+                //return *txFirstInputFile[_maxLoadedTx - 1] + lastTx->inputCount;
+                return getFirstInputNumber(_maxLoadedTx - 1) + lastTx->inputCount;
             }
+
+            return 0;
         }
 
         uint64_t outputCount() const {
             if (_maxLoadedTx > 0) {
                 auto lastTx = getTx(_maxLoadedTx - 1);
-                return *txFirstOutputFile[_maxLoadedTx - 1] + lastTx->outputCount;
-            } else {
-                return 0;
+                //return *txFirstOutputFile[_maxLoadedTx - 1] + lastTx->outputCount;
+                return getFirstOutputNumber(_maxLoadedTx - 1) + lastTx->outputCount;
             }
+
+            return 0;
         }
 
         BlockHeight blockCount() const {
             return maxHeight;
         }
 
+        // coinbases file is very small (< 50MB), so data does not need to be shared between forks
         std::vector<unsigned char> getCoinbase(uint64_t offset) const {
             auto pos = blockCoinbaseFile.getDataAtOffset(static_cast<OffsetType>(offset));
             uint32_t coinbaseLength;
@@ -315,7 +505,71 @@ namespace blocksci {
             inputSpentOutputFile.reload();
             txHashesFile.reload();
             sequenceFile.reload();
+
+            /*
+             * does currently not work, as parentChain is const
+            if (parentChain) {
+                parentChain->blockFile.reload();
+                parentChain->blockCoinbaseFile.reload();
+                parentChain->txFile.reload();
+                parentChain->txHashesFile.reload();
+                parentChain->sequenceFile.reload();
+            }
+            */
             setup();
+        }
+
+        uint64_t getFirstInputNumber(uint32_t index) const {
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getFirstInputNumber(" << index << ")" << std::endl;
+                return *txFirstInputFile[index];
+            }
+            else if (parentChain) {
+                return parentChain->getFirstInputNumber(index);
+            }
+            return 0; // TODO: default value
+        }
+
+        uint64_t getFirstOutputNumber(uint32_t index) const {
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getFirstOutputNumber(" << index << ")" << std::endl;
+                return *txFirstOutputFile[index];
+            }
+            else if (parentChain) {
+                return parentChain->getFirstOutputNumber(index);
+            }
+            return 0; // TODO: default value
+        }
+
+        uint16_t getSpentOutputNumberByInputNumber(uint64_t index) const {
+            if (index >= forkTxIndex) {
+                //std::cout << getChainType() << ".getSpentOutputNumberByInputNumber(" << index << ")" << std::endl;
+                return *inputSpentOutputFile[index];
+            }
+            else if (parentChain) {
+                return parentChain->getFirstOutputNumber(index);
+            }
+            return 0; // TODO: default value
+        }
+
+        /*
+        std::vector<std::unique_ptr<ChainAccess>> getRelatedChains() const {
+            std::vector<std::unique_ptr<ChainAccess>> relatedChains = forkedChains;
+            relatedChains.push_back(parentChain);
+            return relatedChains;
+        }
+        */
+
+        BlockHeight getFirstForkedBlockHeight() const {
+            return firstForkedBlockHeight;
+        }
+
+        uint32_t getForkTxIndex() const {
+            return forkTxIndex;
+        }
+
+        const std::string getChainType() const {
+            return parentChain ? "fork" : "root";
         }
     };
 } // namespace blocksci

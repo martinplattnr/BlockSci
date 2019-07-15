@@ -28,7 +28,9 @@ namespace blocksci {
     /** Loads and holds blockchain configuration files, needed to load blockchains */
     struct DataConfiguration {
         DataConfiguration() {}
+
         DataConfiguration(const std::string &configPath, ChainConfiguration &config, bool errorOnReorg, BlockHeight blocksIgnored);
+        DataConfiguration(const std::string &configPath, ChainConfiguration &config, bool errorOnReorg, BlockHeight blocksIgnored, DataConfiguration parentDataConfiguration);
 
         std::string configPath;
         bool errorOnReorg;
@@ -39,12 +41,23 @@ namespace blocksci {
 
         /** Configuration of an individual chain, eg. coinName, dataDirectory, segwitActivationHeight etc. */
         ChainConfiguration chainConfig;
+
+        std::shared_ptr<DataConfiguration> parentDataConfiguration;
         
         bool isNull() const {
             return chainConfig.dataDirectory.empty();
         }
+
+        DataConfiguration& rootDataConfiguration(){
+            DataConfiguration* current = this;
+            while (current->parentDataConfiguration != nullptr) {
+                current = current->parentDataConfiguration.get();
+            }
+            return *current;
+        }
         
         filesystem::path scriptsDirectory() const {
+            // return this->rootDataConfiguration().chainConfig.dataDirectory/"scripts";
             return chainConfig.dataDirectory/"scripts";
         }
         

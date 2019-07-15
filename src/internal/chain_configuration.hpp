@@ -17,12 +17,16 @@
 #include <wjfilesystem/path.h>
 
 #include <string>
+#include <memory>
 #include <vector>
 
 namespace blocksci {
-    
+
     struct ChainConfiguration {
+        // name of the coin, eg. "bitcoin", "bitcoin_testnet", "bitcoin_regtest", "bitcoin_cash", etc.
         std::string coinName;
+
+        // data directory of this chain
         filesystem::path dataDirectory;
 
         /** Prefixes that are used to generate base58 P2PKH (pubkeyPrefix) and P2SH (scriptPrefix) addresses
@@ -32,11 +36,17 @@ namespace blocksci {
          */
         std::vector<unsigned char> pubkeyPrefix;
         std::vector<unsigned char> scriptPrefix;
-        
+
         std::string segwitPrefix;
 
         /** If segwit is supported, the block height it was activated at, otherwise defaults to std::numeric_limits<BlockHeight>::max() */
         BlockHeight segwitActivationHeight;
+
+        //std::vector<std::string> forkDataDirectories;
+        filesystem::path parentChainConfigPath;
+        std::shared_ptr<ChainConfiguration> parentChainConfiguration;
+
+        BlockHeight firstForkedBlockHeight;
         
         static ChainConfiguration bitcoin(const std::string &chainDir);
         static ChainConfiguration bitcoinTestnet(const std::string &chainDir);
@@ -58,7 +68,7 @@ namespace blocksci {
         
         static ChainConfiguration zcash(const std::string &chainDir);
         static ChainConfiguration zcashTestnet(const std::string &chainDir);
-        
+
     };
     
     struct ChainRPCConfiguration {

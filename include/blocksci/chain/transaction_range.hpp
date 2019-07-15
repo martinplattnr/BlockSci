@@ -58,8 +58,10 @@ namespace blocksci {
             }
             
             self_type &operator++() {
-                ++tx.data;
+                //++tx.data;
                 ++tx.txNum;
+                // todo: using resetTxData() to allow forked chains (just incrementing the pointer results in a SEGFAULT)
+                resetTxData();
                 if (tx.txNum == nextBlockFirst) {
                     ++tx.blockHeight;
                     updateNextBlock();

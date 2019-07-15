@@ -18,6 +18,8 @@ namespace blocksci {
         j = json{
             {"coinName", p.coinName},
             {"dataDirectory", p.dataDirectory.str()},
+            {"parentChainConfigPath", p.parentChainConfigPath.str()},
+            {"firstForkedBlockHeight", p.firstForkedBlockHeight},
             {"pubkeyPrefix", p.pubkeyPrefix},
             {"scriptPrefix", p.scriptPrefix},
             {"segwitPrefix", p.segwitPrefix},
@@ -30,6 +32,20 @@ namespace blocksci {
         std::string dataDir;
         j.at("dataDirectory").get_to(dataDir);
         p.dataDirectory = dataDir;
+
+        if (j.contains("parentChainConfigPath")) {
+            std::string parentChainConfigPath;
+            j.at("parentChainConfigPath").get_to(parentChainConfigPath);
+            p.parentChainConfigPath = parentChainConfigPath;
+        }
+
+        if (j.contains("firstForkedBlockHeight")) {
+            j.at("firstForkedBlockHeight").get_to(p.firstForkedBlockHeight);
+        }
+        else {
+            p.firstForkedBlockHeight = 0;
+        }
+
         j.at("pubkeyPrefix").get_to(p.pubkeyPrefix);
         j.at("scriptPrefix").get_to(p.scriptPrefix);
         j.at("segwitPrefix").get_to(p.segwitPrefix);
