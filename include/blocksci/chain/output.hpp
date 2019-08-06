@@ -36,17 +36,15 @@ namespace blocksci {
 
         mutable BlockHeight blockHeight = -1;
         friend size_t std::hash<Output>::operator()(const Output &) const;
+
+        void setSpendingTxIndex(uint32_t maxTxLoaded);
     public:
         /** Contains data to uniquely identify one output using txNum and inoutNum */
         OutputPointer pointer;
         
         Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded, DataAccess &access_) :
         access(&access_), inout(&inout_), blockHeight(blockHeight_), pointer(pointer_) {
-            if (inout->getLinkedTxNum() < maxTxLoaded) {
-                spendingTxIndex = inout->getLinkedTxNum();
-            } else {
-                spendingTxIndex = 0;
-            }
+            setSpendingTxIndex(maxTxLoaded);
         }
         
         Output(const OutputPointer &pointer_, DataAccess &access_);

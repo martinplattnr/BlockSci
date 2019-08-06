@@ -22,6 +22,8 @@ namespace blocksci {
         /** Pointer to the Inout of the first input in the range, more <Inout>s follow and can be accessed like inouts[number] */
         const Inout *inouts;
 
+        //const uint32_t *preForkLinkedTxNum;
+
         /** Block height of the transaction whose outputs are part of the range */
         BlockHeight height;
 

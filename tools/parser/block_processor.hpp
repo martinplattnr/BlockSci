@@ -98,8 +98,9 @@ struct RecordAddressesStep : public ProcessorStep {
 struct SerializeTransactionStep : public ProcessorStep {
     IndexedFileWriter<1> &txFile;
     FixedSizeFileWriter<OutputLinkData> &linkDataFile;
+    FixedSizeFileWriter<uint32_t> &preForkLinkedTxNumFile;
     
-    SerializeTransactionStep(IndexedFileWriter<1> &txFile_, FixedSizeFileWriter<OutputLinkData> &linkDataFile_) : txFile(txFile_), linkDataFile(linkDataFile_) {}
+    SerializeTransactionStep(IndexedFileWriter<1> &txFile_, FixedSizeFileWriter<OutputLinkData> &linkDataFile_, FixedSizeFileWriter<uint32_t> &preForkLinkedTxNumFile_) : txFile(txFile_), linkDataFile(linkDataFile_), preForkLinkedTxNumFile(preForkLinkedTxNumFile_) {}
     
     std::vector<std::function<void(RawTransaction &tx)>> steps() override;
 };

@@ -18,6 +18,7 @@
 #include <blocksci/core/raw_transaction.hpp>
 #include <blocksci/core/typedefs.hpp>
 #include <blocksci/core/transaction_data.hpp>
+#include <blocksci/chain/output_pointer.hpp>
 #include "data_configuration.hpp"
 #include "chain_access.hpp"
 
@@ -111,9 +112,12 @@ namespace blocksci {
          */
         FixedSizeFileMapper<uint256> txHashesFile;
 
+        /** Stores a mapping of (output number) to (spending tx number) for forks before the fork */
+        FixedSizeFileMapper<uint32_t> preForkLinkedTxNumFile;
+
         /** Hash of the last loaded block */
         uint256 lastBlockHash;
-        const uint256 *lastBlockHashDisk = nullptr;
+        const uint256 *lastBlockHashDisk = nullptr; //TODO: comment
 
         /** Number of the highest loaded block */
         BlockHeight maxHeight = 0;
@@ -127,11 +131,9 @@ namespace blocksci {
 
         bool errorOnReorg = false;
 
-        std::unique_ptr<const ChainAccess> parentChain;
+        std::unique_ptr<ChainAccess> parentChain;
         // std::vector<std::unique_ptr<ChainAccess>> forkedChains;
-        BlockHeight firstForkedBlockHeight = 0;
-        uint32_t forkTxIndex = 0;
-        uint64_t forkInputIndex = 0;
+
         
 
         void reorgCheck() const {
@@ -182,6 +184,9 @@ namespace blocksci {
         }
 
     public:
+        BlockHeight firstForkedBlockHeight = 0;
+        uint32_t forkTxIndex = 0;
+        uint64_t forkInputIndex = 0;
         /*
         explicit ChainAccess(ChainConfiguration currentChainConfiguration) :
         blockFile(blockFilePath(config_.chainDirectory())),
@@ -218,10 +223,10 @@ namespace blocksci {
         inputSpentOutputFile(inputSpentOutNumFilePath(config_.chainDirectory())),
         sequenceFile(sequenceFilePath(config_.chainDirectory())),
         txHashesFile(txHashesFilePath(config_.chainDirectory())),
+        preForkLinkedTxNumFile(preForkLinkedTxNumFilePath(config_.chainDirectory())),
         blocksIgnored(config_.blocksIgnored),
         errorOnReorg(config_.errorOnReorg),
         firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
-        //parentChain(std::make_unique<ChainAccess>(config)) {
             std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
             std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
 
@@ -233,8 +238,7 @@ namespace blocksci {
             setup();
         }
 
-        /*
-        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg, BlockHeight firstForkedBlockHeight) :
+        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg) :
         blockFile(blockFilePath(baseDirectory)),
         blockCoinbaseFile(blockCoinbaseFilePath(baseDirectory)),
         txFile(txFilePath(baseDirectory)),
@@ -244,16 +248,15 @@ namespace blocksci {
         inputSpentOutputFile(inputSpentOutNumFilePath(baseDirectory)),
         sequenceFile(sequenceFilePath(baseDirectory)),
         txHashesFile(txHashesFilePath(baseDirectory)),
+        preForkLinkedTxNumFile(preForkLinkedTxNumFilePath(baseDirectory)),
         blocksIgnored(blocksIgnored),
-        errorOnReorg(errorOnReorg),
-        firstForkedBlockHeight(firstForkedBlockHeight) {
+        errorOnReorg(errorOnReorg) {
             std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
             std::cout << "baseDirectory: " << baseDirectory << std::endl;
             setup();
         }
 
-<<<<<<< HEAD
-=======
+        /*
         explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg, const filesystem::path &parentChainConfigPath, BlockHeight firstForkedBlockHeight) :
         blockFile(blockFilePath(baseDirectory), firstForkedBlockHeight),
         blockCoinbaseFile(blockCoinbaseFilePath(baseDirectory)),
@@ -276,11 +279,14 @@ namespace blocksci {
         }
         */
         
->>>>>>> feat: change configuration and data access classes to support forks
         static filesystem::path txFilePath(const filesystem::path &baseDirectory) {
             return baseDirectory/"tx";
         }
 
+        static filesystem::path preForkLinkedTxNumFilePath(const filesystem::path &baseDirectory) {
+            return baseDirectory/"pre_fork_linked_tx_num";
+        }
+        
         static filesystem::path txHashesFilePath(const filesystem::path &baseDirectory) {
             return baseDirectory/"tx_hashes";
         }
@@ -312,7 +318,10 @@ namespace blocksci {
         static filesystem::path inputSpentOutNumFilePath(const filesystem::path &baseDirectory) {
             return baseDirectory/"input_out_num";
         }
-
+        bool hasParentChain() const {
+            return this->parentChain ? true : false;
+        }
+        
         BlockHeight getBlockHeight(uint32_t txIndex) const {
             reorgCheck();
             if (errorOnReorg && txIndex >= _maxLoadedTx) {
@@ -550,6 +559,27 @@ namespace blocksci {
                 return parentChain->getFirstOutputNumber(index);
             }
             return 0; // TODO: default value
+        }
+
+        const uint32_t *getPreForkLinkedTxNum(uint32_t txNum, uint16_t outputNum) const {
+            uint64_t index = this->getFirstOutputNumber(txNum) + outputNum;
+            return preForkLinkedTxNumFile[index];
+        }
+
+        uint32_t getLinkedTxNumFork(const OutputPointer &pointer, uint32_t &defaultValue) {
+            if (pointer.txNum > forkTxIndex) {
+                return defaultValue;
+            }
+            ChainAccess* chainAccessTmp = this;
+            while (chainAccessTmp->parentChain) {
+                chainAccessTmp = chainAccessTmp->parentChain.get();
+                if (pointer.txNum > chainAccessTmp->forkTxIndex) {
+                    uint64_t outputIndex = getFirstOutputNumber(pointer.txNum);
+                    return *(chainAccessTmp->preForkLinkedTxNumFile[outputIndex + pointer.inoutNum]);
+                }
+            }
+
+            return 0;
         }
 
         /*

@@ -86,7 +86,37 @@ namespace blocksci {
         ss << "TxOut(spending_tx_index=" << inout->getLinkedTxNum() << ", address=" << getAddress().toString() << ", value=" << inout->getValue() << ")";
         return ss.str();
     }
-    
+
+    void Output::setSpendingTxIndex(uint32_t maxTxLoaded) {
+        //uint32_t spendingTxIndexTmp = *access->getChain().getPreForkLinkedTxNum(this->pointer.txNum, this->pointer.inoutNum);
+        //std::cout << "spendingTxIndexTmp=" << spendingTxIndexTmp << "| inout->getLinkedTxNum()=" << inout->getLinkedTxNum() << std::endl;
+
+        uint32_t spendingTxIndexTmp;
+        if (pointer.txNum >= access->getChain().forkTxIndex) {
+            // Output was created after the fork -> use Inout.linkedTxNum
+            spendingTxIndexTmp = inout->getLinkedTxNum();
+        }
+        else {
+            // Output was created before the fork -> use separate file
+            spendingTxIndexTmp = *access->getChain().getPreForkLinkedTxNum(this->pointer.txNum, this->pointer.inoutNum);
+        }
+
+        if (spendingTxIndexTmp < maxTxLoaded) {
+            spendingTxIndex = spendingTxIndexTmp;
+            if (spendingTxIndexTmp != inout->getLinkedTxNum()) {
+                std::cout << "error" << std::endl;
+            }
+        } else {
+            spendingTxIndex = 0;
+        }
+
+        /*
+        if (access->getChain().hasParentChain() && blockHeight < access->getChain().getFirstForkedBlockHeight()) {
+            uint32_t spendingTxIndexTmp = access->getChain().getForkTxIndex();
+        }
+        */
+    }
+
     std::ostream &operator<<(std::ostream &os, const Output &output) {
         return os << output.toString();
     }

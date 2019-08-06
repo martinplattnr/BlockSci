@@ -3,15 +3,16 @@
 
 int main(int argc, const char * argv[]) {
     std::cout << "### Loading BTC ###" << std::endl;
-    blocksci::Blockchain btc{"/mnt/data/blocksci/bitcoin/current-v0.6/config.json"};
+    //blocksci::Blockchain btc{"/mnt/data/blocksci/bitcoin/current-v0.6/config.json"};
+    blocksci::Blockchain btc{"/home/martin/testchains/blocksci/btc-btc/btc-fork-config.json"};
 
     std::cout << "### Loading BCH ###" << std::endl;
-    blocksci::Blockchain bch{"/mnt/data/blocksci/bitcoin-cash/current/config_fork_support.json"};
+    //blocksci::Blockchain bch{"/mnt/data/blocksci/bitcoin-cash/current/config_fork_support.json"};
 
-    /*
-    RANGES_FOR(auto block, chain) {
+
+    RANGES_FOR(auto block, btc) {
         if (block.size() > 1) {
-            std::cout << "Block " << block.height() << ": " << block.size() << " transactions" << std::endl;
+            std::cout << "### Block " << block.height() << ": " << block.size() << " transactions" << std::endl;
         }
         if (block.height() > 5000) {
             break;
@@ -19,11 +20,19 @@ int main(int argc, const char * argv[]) {
 
         RANGES_FOR(auto tx, block) {
             std::cout << "tx: " << tx.txNum << "(size " << tx.totalSize() << ")" << std::endl;
+
+            RANGES_FOR(auto output, tx.outputs()) {
+                std::cout << "output: " << output.getValue() << std::endl;
+            }
+            if (tx.txNum == 727) {
+                // break out of loops as the asset(index < size()) fails in the file mapper, because of the
+                // resetTxData() in TransactionRange::iterator::self_type &operator++() {
+                goto afterLoop;
+            }
         }
-
     }
-    */
-
+    afterLoop:
+    /*
     double txSizes = 0.0;
     int txCount = 0;
     for (int i=478559; i < 478560; i++) {
@@ -48,7 +57,7 @@ int main(int argc, const char * argv[]) {
 
     std::cout << txSizes << std::endl;
     std::cout << "txCount=" << txCount << std::endl;
-
+    */
     /*
     for (int i=450000; i < 451000; i++) {
         auto block = btc[i];

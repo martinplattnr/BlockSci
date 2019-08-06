@@ -305,7 +305,7 @@ std::vector<std::function<void(RawTransaction &tx)>> GenerateScriptOutputsStep::
  * Store information about the spent output with each input of the transaction. Then store information about each output for future lookup. */
 std::vector<std::function<void(RawTransaction &tx)>> ConnectUTXOsStep::steps() {
     return {[&](RawTransaction &tx) {
-        // Fill UTXOState (SerializableMap<RawOutputPointer, UTXO>) with mapping tx output ->  UTXO(output.value, txNum, type)
+        // Fill UTXOState (SerializableMap<RawOutputPointer, UTXO>) with mapping tx output -> UTXO(output.value, txNum, type)
         for (uint16_t i = 0; i < tx.outputs.size(); i++) {
             auto &output = tx.outputs[i];
             auto &scriptOutput = tx.scriptOutputs[i];
@@ -407,6 +407,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeTransactionStep::s
             auto address = scriptOutput.address();
             blocksci::Inout blocksciOutput{0, address.scriptNum, address.type, output.value};
             txFile.write(blocksciOutput);
+            preForkLinkedTxNumFile.write(0);
         }
     }};
 }
@@ -461,6 +462,9 @@ void backUpdateTxes(const ParserConfigurationBase &config) {
     
     {
         blocksci::IndexedFileMapper<mio::access_mode::write, blocksci::RawTransaction> txFile(blocksci::ChainAccess::txFilePath(config.dataConfig.chainDirectory()));
+        FixedSizeFileWriter<uint32_t> preForkLinkedTxNumFile(blocksci::ChainAccess::preForkLinkedTxNumFilePath(config.dataConfig.chainDirectory()));
+        blocksci::FixedSizeFileMapper<uint64_t, mio::access_mode::read> txFirstOutput(blocksci::ChainAccess::firstOutputFilePath(config.dataConfig.chainDirectory()));
+
         auto progressBar = blocksci::makeProgressBar(updates.size(), [=]() {});
         
         uint32_t count = 0;
@@ -469,6 +473,9 @@ void backUpdateTxes(const ParserConfigurationBase &config) {
             auto &output = tx->getOutput(update.pointer.inoutNum);
             // Set the forward-reference to the tx number of the tx that contains the spending input
             output.setLinkedTxNum(update.txNum);
+
+            std::cout << "writing " << update.txNum << " to " << *txFirstOutput[update.pointer.txNum] + update.pointer.inoutNum << std::endl;
+            preForkLinkedTxNumFile.updateData(*txFirstOutput[update.pointer.txNum] + update.pointer.inoutNum, 0, update.txNum);
             
             count++;
             progressBar.update(count);
@@ -837,6 +844,7 @@ std::vector<blocksci::RawBlock> BlockProcessor::addNewBlocks(const ParserConfigu
     IndexedFileWriter<1> txFile(blocksci::ChainAccess::txFilePath(config.dataConfig.chainDirectory()));
     FixedSizeFileWriter<OutputLinkData> linkDataFile(config.txUpdatesFilePath());
     FixedSizeFileWriter<blocksci::uint256> txHashFile{blocksci::ChainAccess::txHashesFilePath(config.dataConfig.chainDirectory())};
+    FixedSizeFileWriter<uint32_t> preForkLinkedTxNumFile{blocksci::ChainAccess::preForkLinkedTxNumFilePath(config.dataConfig.chainDirectory())};
 
     auto discardFunc = [](RawTransaction &) { return false; };
     
@@ -878,7 +886,7 @@ std::vector<blocksci::RawBlock> BlockProcessor::addNewBlocks(const ParserConfigu
     processQueue.addStep(makeStandardProcessStep(std::make_unique<RecordAddressesStep>(utxoScriptState), discardFunc, discardFunc));
 
     // 7. Step: Serialize transaction data, inputs, and outputs and write them to the txFile
-    processQueue.addStep(makeStandardProcessStep(std::make_unique<SerializeTransactionStep>(txFile, linkDataFile), discardFunc, discardFunc));
+    processQueue.addStep(makeStandardProcessStep(std::make_unique<SerializeTransactionStep>(txFile, linkDataFile, preForkLinkedTxNumFile), discardFunc, discardFunc));
 
     // 8. Step: Save address data into files for the analysis library
     processQueue.addStep(makeStandardProcessStep(std::make_unique<SerializeAddressesStep>(addressWriter), discardFunc, serializeAddressDiscardFunc, false, true));
@@ -886,7 +894,7 @@ std::vector<blocksci::RawBlock> BlockProcessor::addNewBlocks(const ParserConfigu
     // Two hold stages for ATOR
     processQueue.addStep(makeHoldTxStep());
     processQueue.addStep(makeHoldTxStep());
-    
+
     processQueue.setStepOrder({
         {0, 0},
         {1, 0},
