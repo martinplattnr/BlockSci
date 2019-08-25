@@ -99,17 +99,20 @@ namespace blocksci {
             auto index = static_cast<size_t>(type);
             return scriptDataBaseTable.at(index)(addressNum, *this);
         }
-        
+
+        // todo-fork: gives chain-family results if script files are shared among forks
         std::array<uint32_t, DedupAddressType::size> scriptCounts() const {
             return make_static_table<DedupAddressType, internal::ScriptCountFunctor>(*this);
         }
-        
+
+        // todo-fork: gives chain-family results if script files are shared among forks
         uint32_t scriptCount(DedupAddressType::Enum type) const {
             static constexpr auto table = make_dynamic_table<DedupAddressType, internal::ScriptCountFunctor>();
             auto index = static_cast<size_t>(type);
             return table.at(index)(*this);
         }
-        
+
+        // todo-fork: gives chain-family results if script files are shared among forks
         size_t totalAddressCount() const {
             uint32_t count = 0;
             for_each(scriptFiles, [&count](auto& obj) -> decltype(auto) {count += obj.size();});

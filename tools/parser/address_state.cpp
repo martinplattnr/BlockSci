@@ -26,14 +26,16 @@ namespace {
 AddressState::AddressState(filesystem::path path_, HashIndexCreator &hashDb) : path(std::move(path_)), db(hashDb), addressBloomFilters(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
     return std::make_unique<AddressBloomFilter<tag>>(path/std::string(bloomFileName));
 }))  {
+    // todo-fork: use local data for the multi-address-maps
     blocksci::for_each(multiAddressMaps, [&](auto &multiAddressMap) {
         std::stringstream ss;
         ss << multiAddressFileName << "_" << dedupAddressName(multiAddressMap.type) << ".dat";
         multiAddressMap.unserialize((path/ss.str()).str());
     });
-    
-    std::ifstream inputFile((path/std::string(scriptCountsFileName)).str());
-    
+
+    // todo-fork: use the root scriptCounts.txt file
+    std::ifstream inputFile((rootPath/std::string(scriptCountsFileName)).str());
+
     if (inputFile) {
         uint32_t value;
         while ( inputFile >> value ) {

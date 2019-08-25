@@ -45,6 +45,7 @@ namespace blocksci {
          * Directory: chain/
          */
         std::unique_ptr<ChainAccess> chain;
+        // todo-fork: have a map (chainId -> ChainAccess)?
 
         /** Provides access to script data of all address types
          *
@@ -105,7 +106,7 @@ namespace blocksci {
             return *hashIndex;
         }
 
-        // todo: commented to prevent compiler error
+        // todo-fork: commented to prevent compiler error
         //operator DataConfiguration() const { return config; }
         
         void reload();

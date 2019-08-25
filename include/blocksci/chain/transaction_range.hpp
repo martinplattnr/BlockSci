@@ -117,7 +117,9 @@ namespace blocksci {
         
         using size_type = typename iterator::size_type;
         using difference_type = typename iterator::difference_type;
-        
+
+        // todo-fork: add chain id
+
         struct Slice {
             size_type start;
             size_type stop;

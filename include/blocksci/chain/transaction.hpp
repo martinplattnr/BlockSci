@@ -45,12 +45,13 @@ namespace blocksci {
     public:
         /** Blockchain-wide transaction number in the same order they appear in the blockchain, also called transaction index */
         uint32_t txNum;
-        
+        // todo-fork: add chain id
         
         Transaction() = default;
         
         Transaction(const TxData &data_, uint32_t txNum_, BlockHeight blockHeight_, uint32_t maxTxCount_, DataAccess &access_) : access(&access_), data(data_), maxTxCount(maxTxCount_), blockHeight(blockHeight_), txNum(txNum_) {}
         
+        // todo-fork: Transaction(uint32_t index, BlockHeight height, chainid, DataAccess &access_);
         Transaction(uint32_t index, BlockHeight height, DataAccess &access_);
         
         Transaction(uint32_t index, DataAccess &access_);

@@ -340,9 +340,9 @@ namespace blocksci {
         prepareClusterDataLocation(outputPath, overwrite);
         
         // Perform clustering
-        
-        auto &scripts = chain.getAccess().getScripts();
-        size_t totalScriptCount = scripts.totalAddressCount();
+
+        auto &scripts = chain.getAccess().getScripts(); // todo-fork: for forked chains, returns the ScriptAccess of the root chain
+        size_t totalScriptCount = scripts.totalAddressCount(); // todo-fork: should be correct already
         
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {
@@ -354,7 +354,7 @@ namespace blocksci {
                 scriptStarts[static_cast<DedupAddressType::Enum>(i)] = starts[i];
             }
         }
-        
+
         auto parent = createClusters(chain, scriptStarts, static_cast<uint32_t>(totalScriptCount), std::forward<ChangeFunc>(changeHeuristic), ignoreCoinJoin);
         uint32_t clusterCount = remapClusterIds(parent);
         serializeClusterData(scripts, outputPath, parent, scriptStarts, clusterCount);

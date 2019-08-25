@@ -29,6 +29,7 @@ namespace blocksci {
         
         ChainConfiguration chainConfig = jsonConf.at("chainConfig");
 
+        // todo-fork: refactor creation of DataConfiguration, shared pointer assignment is a mess
         if (chainConfig.parentChainConfigPath.length()) {
             DataConfiguration dc{configPath, chainConfig, errorOnReorg, blocksIgnored, loadBlockchainConfig(chainConfig.parentChainConfigPath.str(), errorOnReorg, blocksIgnored)};
             return dc;

@@ -156,7 +156,7 @@ namespace blocksci {
         ranges::optional<uint32_t> getScriptHashIndex(const uint256 &scripthash);
       
         /** Get the tx number for the given transaction hash */
-        ranges::optional<uint32_t> getTxIndex(const uint256 &txHash);
+        ranges::optional<uint32_t> getTxIndex(const uint256 &txHash); // fork-todo: add chainId
         
         uint32_t countColumn(AddressType::Enum type);
         uint32_t countTxes();

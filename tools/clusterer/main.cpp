@@ -29,8 +29,9 @@ int main(int argc, char * argv[]) {
         return 0;
     }
     
+    // todo-fork: initialized with the forked blockchain or ChainManager
     blocksci::Blockchain chain(configLocation);
-    
+
     blocksci::ClusterManager::createClustering(chain, blocksci::heuristics::NoChange{}, outputLocation, overwrite);
     return 0;
 }

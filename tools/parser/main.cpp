@@ -140,8 +140,9 @@ void rollbackTransactions(blocksci::BlockHeight blockKeepCount, HashIndexCreator
         SimpleFileMapper<readwrite>(blocksci::ChainAccess::blockCoinbaseFilePath(config.dataConfig.chainDirectory())).truncate(firstDeletedBlock->coinbaseOffset);
         blockFile.truncate(blockKeepCount);
         AddressWriter(config).rollback(blocksciState);
-        
-        AddressState addressState{config.addressPath(), hashDb};
+
+        // todo-fork: change is just to avoid build failure
+        AddressState addressState{config.addressPath(), config.addressPath(), hashDb};
         hashDb.db.rollback(blocksciState.txCount, blocksciState.scriptCounts);
         addressState.reset(blocksciState);
     }
@@ -178,7 +179,7 @@ void unlockDataDirectory(const ParserConfigurationBase &config) {
 }
 
 void resetDataDirectory(const ParserConfigurationBase &config) {
-    // todo: remove before release
+    // todo-fork: remove before release
     std::cout << "Resetting data directory." << std::endl;
     std::system(("exec rm -r " + config.dataConfig.chainConfig.dataDirectory.str() + "/*").c_str());
 }
@@ -380,6 +381,7 @@ void updateChain(const filesystem::path &configFilePath, bool fullParse) {
     }
     
     if (fullParse) {
+        // todo-fork: isn't the parsed data getting corrupted if fullParse=false? (HashDb won't contain the new address identifiers and new scriptNums would be assigned?); probably not, because the parser state saves missing information until it is inserted
         updateHashDB(config, hashDb);
         updateAddressDB(config);
     }

@@ -46,6 +46,7 @@ constexpr int startingCount<blocksci::DedupAddressType::SCRIPTHASH> = 100'000'00
 template<>
 constexpr int startingCount<blocksci::DedupAddressType::MULTISIG> = 100'000'000;
 
+// todo-fork: maybe the AddressState needs to be shared between related chains
 class AddressState {
     static constexpr auto AddressFalsePositiveRate = .05;
     
@@ -103,7 +104,8 @@ class AddressState {
     }
     
 public:
-    AddressState(filesystem::path path, HashIndexCreator &hashDb);
+    // todo: maybe hashDb can be shared, while the rest (MultiMap and bloomfilter) could be per-chain
+    AddressState(filesystem::path path, filesystem::path rootPath, HashIndexCreator &hashDb);
     AddressState(const AddressState &) = delete;
     AddressState &operator=(const AddressState &) = delete;
     AddressState(AddressState &&) = delete;

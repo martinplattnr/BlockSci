@@ -154,7 +154,7 @@ namespace blocksci {
                 auto firstForkedBlock = blockFile[firstForkedBlockHeight];
                 forkTxIndex = firstForkedBlock->firstTxIndex;
                 std::cout << "forkTxIndex = " << forkTxIndex << std::endl;
-                forkInputIndex = 0; // TODO
+                forkInputIndex = 0; // todo-fork
             }
 
             if (maxHeight > BlockHeight(0)) {
@@ -330,7 +330,7 @@ namespace blocksci {
             auto blockBegin = getBlock(0);
             //auto blockEnd = getBlock(static_cast<OffsetType>(maxHeight) - 1) + 1;
 
-            // todo: bounds checking
+            // todo-fork: bounds checking
             while (txIndex >= blockBegin->firstTxIndex) {
                 blockBegin++;
             }
@@ -451,7 +451,7 @@ namespace blocksci {
             auto firstInputNum = static_cast<OffsetType>(getFirstInputNumber(index));
             const uint16_t *inputsSpent = nullptr;
             const uint32_t *sequenceNumbers = nullptr;
-            // TODO: make fork-aware
+            // todo-fork: make fork-aware
             if (firstInputNum < inputSpentOutputFile.size()) {
                 inputsSpent = inputSpentOutputFile[firstInputNum];
                 sequenceNumbers = sequenceFile[firstInputNum];

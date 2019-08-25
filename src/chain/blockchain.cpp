@@ -56,7 +56,8 @@ namespace blocksci {
         auto lastBlock = chain[static_cast<int>(chain.size()) - BlockHeight{1}];
         return lastBlock.endTxIndex();
     }
-    
+
+    // todo-fork: gives chain-family results if script files are shared among forks
     uint32_t Blockchain::addressCount(AddressType::Enum type) const {
         return access->getScripts().scriptCount(dedupType(type));
     }

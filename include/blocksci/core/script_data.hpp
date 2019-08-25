@@ -74,7 +74,8 @@ namespace blocksci {
         explicit ScriptDataBase(uint32_t txNum) : txFirstSeen(txNum), txFirstSpent(std::numeric_limits<uint32_t>::max()), typesSeen(0) {}
         
         void visitPointers(const std::function<void(const RawAddress &)> &) const {}
-        
+
+        // todo-fork: get this from the AddressIndex by chainId ?; otherwise it's unclear which chain it was seen on
         uint32_t getFirstTxIndex() const {
             return txFirstSeen;
         }

@@ -87,7 +87,7 @@ namespace blocksci {
     }
     
     ranges::any_view<InoutPointer, ranges::category::forward> AddressIndex::getOutputPointers(const RawAddress &address) const {
-        auto prefixData = reinterpret_cast<const char *>(&address.scriptNum);
+        auto prefixData = reinterpret_cast<const char *>(&address.scriptNum); // todo-fork: add chainid as method parameter and to the prefix
         std::vector<char> prefix(prefixData, prefixData + sizeof(address.scriptNum));  // vector with scriptNum bytes
         auto rawOutputPointerRange = ColumnIterator(db.get(), getOutputColumn(address.type).get(), prefix);
         return rawOutputPointerRange | ranges::view::transform([](std::pair<MemoryView, MemoryView> pair) -> InoutPointer {
