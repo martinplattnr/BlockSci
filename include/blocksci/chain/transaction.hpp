@@ -149,25 +149,24 @@ namespace blocksci {
             return inputCount() == 0;
         }
 
+        /* todo-fork: comparison needs refactoring
         bool operator==(const Transaction& other) const {
             return blockHeight == other.blockHeight
             && maxTxCount == other.maxTxCount
             && data == other.data
             && txNum == other.txNum;
         }
+        */
         
         Block block() const;
     };
 
-    /* todo-fork: needs refactoring
     inline bool BLOCKSCI_EXPORT operator==(const Transaction& a, const Transaction& b) {
         return a.txNum == b.txNum;
     }
-    */
 
     inline bool BLOCKSCI_EXPORT operator!=(const Transaction& a, const Transaction& b) {
-        return ! (a == b);
-        //return a.txNum != b.txNum;
+        return a.txNum != b.txNum;
     }
 
     inline bool BLOCKSCI_EXPORT operator<(const Transaction& a, const Transaction& b) {

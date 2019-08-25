@@ -48,7 +48,13 @@ namespace blocksci {
         ss << "Block(tx_count=" << rawBlock->txCount <<", height=" << height() <<", header_hash=" << getHeaderHash() << ", version=" << rawBlock->version <<", timestamp=" << rawBlock->timestamp << ", bits=" << rawBlock->bits << ", nonce=" << rawBlock->nonce << ")";
         return ss.str();
     }
-    
+
+    /* todo-fork:
+    ChainId::Enum Block::getChainId() const {
+        return getAccess().chainId;
+    }
+    */
+
     std::ostream &operator<<(std::ostream &os, const blocksci::Block &block) {
         os << block.toString();
         return os;
