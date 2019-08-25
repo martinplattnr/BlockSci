@@ -14,31 +14,40 @@
 
 
 namespace blocksci {
-    class BLOCKSCI_EXPORT ChainId {
+    // todo-fork: add other coins and assign final IDs
+    class ChainId {
     public:
-        static const uint8_t RESERVED = 0;
+        enum Enum : uint16_t
+        {
+            UNSPECIFIED = 0,
+            BITCOIN = 1,
+            BITCOIN_CASH = 2,
+            BITCOIN_SV = 3,
+            BITCOIN_GOLD = 4,
+            LITECOIN = 100,
+        };
 
-        static const uint8_t BITCOIN = 1;
-        static const uint8_t BITCOIN_TESTNET = 2;
-        static const uint8_t BITCOIN_REGTEST = 3;
+        static std::string getName(const ChainId::Enum& chainId) {
+            switch(chainId) {
+                case ChainId::UNSPECIFIED: return "unspecified";
+                case ChainId::BITCOIN: return "bitcoin";
+                case ChainId::BITCOIN_CASH: return "bitcoin_cash";
+                case ChainId::BITCOIN_SV: return "bitcoin_sv";
+                case ChainId::BITCOIN_GOLD: return "bitcoin_gold";
+                case ChainId::LITECOIN: return "litecoin";
+            }
+            return "ERROR";
+            // throw error here
+        }
 
-        static const uint8_t BITCOIN_CASH = 4;
-        static const uint8_t BITCOIN_CASH_TESTNET = 5;
-        static const uint8_t BITCOIN_CASH_REGTEST = 6;
-
-        static const uint8_t LITECOIN = 7;
-        static const uint8_t LITECOIN_TESTNET = 8;
-        static const uint8_t LITECOIN_REGTEST = 9;
-
-        static const uint8_t DASH = 10;
-        static const uint8_t DASH_TESTNET = 11;
-
-        static const uint8_t ZCASH = 12;
-        static const uint8_t ZCASH_TESTNET = 13;
-
-        static const uint8_t NAMECOIN = 14;
-        static const uint8_t NAMECOIN_TESTNET = 15;
-
+        static ChainId::Enum get(std::string name) {
+            if (name == "bitcoin") {
+                return ChainId::BITCOIN;
+            }
+            else if (name == "bitcoin_cash") {
+                return ChainId::BITCOIN_CASH;
+            }
+        }
     };
 }
 
