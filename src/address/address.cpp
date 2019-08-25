@@ -35,6 +35,7 @@ namespace blocksci {
     
     ranges::any_view<OutputPointer> Address::getOutputPointers() const {
         return access->getAddressIndex().getOutputPointers(*this)
+        // fork-todo: add chainId
         | ranges::view::transform([](const InoutPointer &pointer) { return OutputPointer(pointer.txNum, pointer.inoutNum); });
     }
     
@@ -195,6 +196,7 @@ namespace blocksci {
         access(access_), searchAddress(searchAddress_),
         pointers(access_->getAddressIndex().getOutputPointers(searchAddress_)
         | ranges::view::transform([](const InoutPointer &pointer) {
+            // fork-todo: add chainId
             return OutputPointer(pointer.txNum, pointer.inoutNum);
         })) {}
     };

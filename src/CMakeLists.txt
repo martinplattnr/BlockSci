@@ -131,6 +131,12 @@ set(CORE_HEADERS
   ${BLOCKSCI_HEADER_PREFIX}/core/script_data.hpp
   ${BLOCKSCI_HEADER_PREFIX}/core/transaction_data.hpp
   ${BLOCKSCI_HEADER_PREFIX}/core/typedefs.hpp
+  ${BLOCKSCI_HEADER_PREFIX}/core/chain_ids.hpp
+  ${BLOCKSCI_HEADER_PREFIX}/core/chain_manager.hpp
+)
+
+set(CORE_SOURCES
+  ${BLOCKSCI_SOURCE_PREFIX}/core/chain_manager.cpp
 )
 
 set(BLOCKSCI_HEADERS
@@ -270,6 +276,7 @@ target_sources(blocksci
     $<BUILD_INTERFACE:${HEURISTICS_HEADERS}>
     $<BUILD_INTERFACE:${CLUSTER_HEADERS}>
   PRIVATE
+    ${CORE_SOURCES}
     ${BLOCKSCI_SOURCES}
     ${ADDRESS_SOURCES}
     ${SCRIPT_SOURCES}

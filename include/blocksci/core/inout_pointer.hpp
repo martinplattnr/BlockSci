@@ -20,7 +20,10 @@ namespace blocksci {
     struct BLOCKSCI_EXPORT InoutPointer {
         uint32_t txNum;
         uint16_t inoutNum;
-        
+        // todo-fork: add a chainId field?
+        // ChainId::Enum chainId;
+
+
         InoutPointer() : txNum(0), inoutNum(0) {}
         InoutPointer(uint32_t txNum_, uint16_t inoutNum_) : txNum(txNum_), inoutNum(inoutNum_) {}
         

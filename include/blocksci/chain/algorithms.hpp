@@ -109,6 +109,7 @@ namespace blocksci {
     
     template <typename B, CONCEPT_REQUIRES_(ranges::Range<B>()), std::enable_if_t<isOutputPointerRange<B>, int> = 0>
     inline auto BLOCKSCI_EXPORT outputs(B && b, DataAccess &access) {
+        // todo-fork: access.getByChainId(pointer.chainId)
         return std::forward<B>(b) | ranges::view::transform([&access](const OutputPointer &pointer) { return Output(pointer, access); });
     }
     

@@ -53,7 +53,7 @@ namespace blocksci {
         
         // todo-fork: Transaction(uint32_t index, BlockHeight height, chainid, DataAccess &access_);
         Transaction(uint32_t index, BlockHeight height, DataAccess &access_);
-        
+
         Transaction(uint32_t index, DataAccess &access_);
         
         Transaction(const uint256 &hash, DataAccess &access);
@@ -148,18 +148,28 @@ namespace blocksci {
         bool isCoinbase() const {
             return inputCount() == 0;
         }
+
+        bool operator==(const Transaction& other) const {
+            return blockHeight == other.blockHeight
+            && maxTxCount == other.maxTxCount
+            && data == other.data
+            && txNum == other.txNum;
+        }
         
         Block block() const;
     };
-    
+
+    /* todo-fork: needs refactoring
     inline bool BLOCKSCI_EXPORT operator==(const Transaction& a, const Transaction& b) {
         return a.txNum == b.txNum;
     }
+    */
 
     inline bool BLOCKSCI_EXPORT operator!=(const Transaction& a, const Transaction& b) {
-        return a.txNum != b.txNum;
+        return ! (a == b);
+        //return a.txNum != b.txNum;
     }
-    
+
     inline bool BLOCKSCI_EXPORT operator<(const Transaction& a, const Transaction& b) {
         return a.txNum < b.txNum;
     }

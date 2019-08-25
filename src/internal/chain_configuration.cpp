@@ -176,6 +176,8 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoin(const std::string &chainDir) {
         return {
             "bitcoin",
+            // todo-fork: ChainId::BITCOIN,
+            // todo-fork: fork height
             chainDir,
             std::vector<unsigned char>(1,0),
             std::vector<unsigned char>(1,5),
