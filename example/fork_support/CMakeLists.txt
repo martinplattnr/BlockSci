@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(fork_support_test)
+project(fork_support)
 
 file(GLOB EXAMPLE_HEADERS "*.hpp")
 file(GLOB EXAMPLE_SOURCES "*.cpp")
