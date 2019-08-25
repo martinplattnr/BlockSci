@@ -366,6 +366,7 @@ std::vector<std::function<void(RawTransaction &tx)>> ProcessAddressesStep::steps
  * Record the scriptNum for each output for later reference. Assign each spent input with
  * the scriptNum of the output its spending. */
 std::vector<std::function<void(RawTransaction &tx)>> RecordAddressesStep::steps() {
+    // state is of type UTXOScriptState
     return {[&](RawTransaction &tx) {
         uint16_t i = 0;
         for (auto &scriptOutput : tx.scriptOutputs) {

@@ -26,7 +26,8 @@ struct ScriptOutput {
     
     ScriptOutput() = default;
     ScriptOutput(const ScriptOutputData<type> &data_) : data(data_) {}
-    
+
+    /** resolve the given Output to an existing scriptNum, if available */
     uint32_t resolve(AddressState &state) {
         auto addressInfo = state.findAddress(data);
         std::tie(scriptNum, isNew) = state.resolveAddress(addressInfo);

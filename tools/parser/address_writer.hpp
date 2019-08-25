@@ -78,7 +78,8 @@ public:
     const ScriptFile<type> &getFile() const {
         return std::get<ScriptFile<type>>(scriptFiles);
     }
-    
+
+    // add new script to script file
     template<blocksci::AddressType::Enum type>
     blocksci::OffsetType serializeNew(const ScriptOutput<type> &output, uint32_t txNum, bool topLevel) {
         assert(output.isNew);

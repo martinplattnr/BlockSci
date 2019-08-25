@@ -52,6 +52,7 @@ namespace blocksci {
             && bits == other.bits
             && nonce == other.nonce
             && coinbaseOffset == other.coinbaseOffset;
+            // todo: add check for realSize and baseSize ?
         }
     };
 } // namespace blocksci

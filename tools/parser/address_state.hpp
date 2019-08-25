@@ -20,8 +20,8 @@
 #include <memory>
 
 enum class AddressLocation {
-    MultiUseMap,
-    LevelDb,
+    MultiUseMap, // map of addresses that are used multiple times
+    LevelDb, // todo: can be renamed to RocksDb
     NotFound
 };
 
@@ -120,7 +120,8 @@ public:
     std::pair<uint32_t, bool> resolveAddress(const NonDudupAddressInfo<type> &addressInfo) {
         return std::make_pair(addressInfo.addressNum, true);
     }
-    
+
+    // check if an address exists already
     template<blocksci::AddressType::Enum type, std::enable_if_t<blocksci::DedupAddressInfo<dedupType(type)>::equived, int> = 0>
     RawAddressInfo<type> findAddress(const ScriptOutputData<type> &data) {
         auto hash = data.getHash();
@@ -157,6 +158,7 @@ public:
         bool existingAddress = false;
         switch (addressInfo.location) {
             case AddressLocation::LevelDb: {
+                // address was found in RocksDb, so it occurs at least twice -> add it to multiAddressMaps
                 auto &multiAddressMap = std::get<AddressMap<dedupType(type)>>(multiAddressMaps);
                 multiAddressMap.add(addressInfo.hash, addressInfo.addressNum);
                 existingAddress = true;

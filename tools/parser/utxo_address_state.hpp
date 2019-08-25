@@ -54,7 +54,8 @@ public:
 
 class UTXOAddressState {
 private:
-    
+
+    // creates std::tuple<UTXOAddressTypeState<0>, UTXOAddressTypeState<1>>, etc.
     using UTXOAddressTypeStateTuple = blocksci::to_address_tuple_t<UTXOAddressTypeState>;
     
     UTXOAddressTypeStateTuple addressTypeStates;

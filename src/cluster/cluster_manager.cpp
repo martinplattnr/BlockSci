@@ -163,7 +163,8 @@ namespace blocksci {
             }
         });
     }
-    
+
+    /** returns a vector that stores the clusterid for every scriptNum, indexed by scriptNum */
     template <typename ChangeFunc>
     std::vector<uint32_t> createClusters(BlockRange &chain, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
         
