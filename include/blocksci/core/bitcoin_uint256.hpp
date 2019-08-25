@@ -143,14 +143,14 @@ namespace blocksci {
      */
     class BLOCKSCI_EXPORT uint160 : public base_blob<160> {
     public:
-        uint160() {}
+        uint160() : base_blob() {}
         explicit uint160(const base_blob<160>& b) : base_blob<160>(b) {}
         template<typename It> uint160(It begin, It end) : base_blob<160>(begin, end) {}
     };
     
     class BLOCKSCI_EXPORT uint256 : public base_blob<256> {
     public:
-        uint256() {}
+        uint256() : base_blob() {}
         explicit uint256(const base_blob<256>& b) : base_blob<256>(b) {}
         template<typename It> uint256(It begin, It end) : base_blob<256>(begin, end) {}
     };

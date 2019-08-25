@@ -12,6 +12,7 @@
 #include <blocksci/blocksci_export.h>
 #include <blocksci/core/bitcoin_uint256.hpp>
 #include <blocksci/core/raw_address.hpp>
+#include <blocksci/scripts/bitcoin_pubkey.hpp>
 
 #include <array>
 #include <limits>
@@ -51,7 +52,7 @@ namespace blocksci {
         const T *begin() {
             return &operator[](Index{0});
         }
-        
+
         const T *end() {
             return &operator[](size());
         }
@@ -108,13 +109,30 @@ namespace blocksci {
         };
         bool hasPubkey;
         
-        PubkeyData(uint32_t txNum, const RawPubkey &pubkey_) : ScriptDataBase(txNum), pubkey(pubkey_), hasPubkey(true) {}
-        PubkeyData(uint32_t txNum, const uint160 &address_) : ScriptDataBase(txNum), address(address_), hasPubkey(false) {}
+        PubkeyData(uint32_t txNum, const RawPubkey &pubkey_) : ScriptDataBase(txNum), pubkey(pubkey_), hasPubkey(true) {
+            // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
+            pubkey.fill(0);
+            auto itBegin = pubkey_.begin();
+            auto itEnd = itBegin + blocksci::CPubKey::GetLen(pubkey_[0]);
+            std::copy(itBegin, itEnd, pubkey.begin());
+
+            // set padding to zero
+            memset(reinterpret_cast<char*>(this+1) -2, 0, 2);
+        }
+        PubkeyData(uint32_t txNum, const uint160 &address_) : ScriptDataBase(txNum), hasPubkey(false) {
+            // todo: this was set to avoid non-deterministic data in the parser output, can (should?) be removed again
+            pubkey.fill(0);
+            address = address_;
+            // set padding to zero (last 2 bytes)
+            memset(reinterpret_cast<char*>(this+1) -2, 0, 2);
+        }
         
         size_t size() {
             return sizeof(PubkeyData);
         }
     };
+    // check the size of PubkeyData as the padding 0-initialization has to be adapted if the size changes
+    static_assert (sizeof(PubkeyData) == 80, "PubkeyData does not have the expected size.");
     
     struct BLOCKSCI_EXPORT ScriptHashData : public ScriptDataBase {
         union {
@@ -123,8 +141,14 @@ namespace blocksci {
         };
         RawAddress wrappedAddress;
         bool isSegwit;
-        
-        ScriptHashData(uint32_t txNum, uint160 hash160_, const RawAddress &wrappedAddress_) : ScriptDataBase(txNum), hash160(hash160_), wrappedAddress(wrappedAddress_), isSegwit(false) {}
+
+        ScriptHashData(uint32_t txNum, uint160 hash160_, const RawAddress &wrappedAddress_) : ScriptDataBase(txNum), wrappedAddress(wrappedAddress_), isSegwit(false) {
+            // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
+            hash256.SetNull();
+            hash160 = hash160_;
+            // set padding (last 3 bytes) to zero
+            memset(reinterpret_cast<char*>(this+1) -3, 0, 3);
+        }
         
         ScriptHashData(uint32_t txNum, uint256 hash256_, const RawAddress &wrappedAddress_) : ScriptDataBase(txNum), hash256(hash256_), wrappedAddress(wrappedAddress_), isSegwit(true) {}
         
@@ -142,6 +166,8 @@ namespace blocksci {
             }
         }
     };
+    // check the size of ScriptHashData as the padding 0-initialization has to be adapted if the size changes
+    static_assert (sizeof(ScriptHashData) == 56, "ScriptHashData does not have the expected size.");
     
     struct BLOCKSCI_EXPORT MultisigData : public ScriptDataBase {
         uint8_t m;

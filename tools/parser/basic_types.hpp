@@ -18,6 +18,10 @@
 struct RawOutputPointer {
     blocksci::uint256 hash;
     uint16_t outputNum;
+
+    // todo: add manual padding and initialize it to 0 to ensure deterministic serialization of UTXOState, should be removed
+    uint16_t padding1 = 0;
+    uint32_t padding2 = 0;
     
     bool operator==(const RawOutputPointer& other) const {
         return hash == other.hash && outputNum == other.outputNum;
