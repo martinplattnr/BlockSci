@@ -19,7 +19,6 @@ namespace blocksci {
 
     DataAccess::DataAccess(DataConfiguration config_) :
     config(std::move(config_)),
-    // @todo: add ChainAccess constructor for ChainAccess(config) that creates nested/linked ChainAccess objects
     //chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.chainConfig.parentChainConfigPath, config.chainConfig.firstForkedBlockHeight)},
     chain{std::make_unique<ChainAccess>(config)},
 

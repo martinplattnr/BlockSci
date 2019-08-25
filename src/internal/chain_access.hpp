@@ -227,12 +227,12 @@ namespace blocksci {
         blocksIgnored(config_.blocksIgnored),
         errorOnReorg(config_.errorOnReorg),
         firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
-            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
+            std::cout << "Initializing ChainAccess only with DataConfiguration." << std::endl;
             std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
 
             if (config_.parentDataConfiguration) {
+                std::cout << "  parent chain config is available" << std::endl;
                 this->parentChain = std::make_unique<ChainAccess>(*config_.parentDataConfiguration);
-                std::cout << "parent chain config is available" << std::endl;
             }
 
             setup();
@@ -354,7 +354,7 @@ namespace blocksci {
             reorgCheck();
 
             if (blockHeight >= firstForkedBlockHeight) {
-                std::cout << getChainType() << ".getBlock(" << blockHeight << ")" << std::endl;
+                //std::cout << getChainType() << ".getBlock(" << blockHeight << ")" << std::endl;
                 return blockFile[static_cast<OffsetType>(blockHeight)];
             }
             else if (parentChain) {
@@ -389,7 +389,7 @@ namespace blocksci {
             reorgCheck();
 
             if (index >= forkTxIndex) {
-                std::cout << getChainType() << ".getTx(" << index << ")" << std::endl;
+                //std::cout << getChainType() << ".getTx(" << index << ")" << std::endl;
                 return txFile.getData(index);
             }
             else {

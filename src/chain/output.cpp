@@ -99,12 +99,13 @@ namespace blocksci {
         else {
             // Output was created before the fork -> use separate file
             spendingTxIndexTmp = *access->getChain().getPreForkLinkedTxNum(this->pointer.txNum, this->pointer.inoutNum);
+            std::cout << "using value from separate file: " << spendingTxIndexTmp << std::endl;
         }
 
         if (spendingTxIndexTmp < maxTxLoaded) {
             spendingTxIndex = spendingTxIndexTmp;
             if (spendingTxIndexTmp != inout->getLinkedTxNum()) {
-                std::cout << "error" << std::endl;
+                std::cout << "Output from fork has another spending tx: " << spendingTxIndexTmp << std::endl;
             }
         } else {
             spendingTxIndex = 0;
