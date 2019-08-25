@@ -21,7 +21,6 @@
 #include <string>
 #include <vector>
 #include <tuple>
-#include <iostream>
 
 namespace blocksci {
     template<mio::access_mode mode = mio::access_mode::read>
@@ -135,20 +134,15 @@ namespace blocksci {
     private:
         mio::basic_mmap<mio::access_mode::read, char> file;
         FileInfo fileInfo;
-        OffsetType offsetBytes = 0;
     public:
         
         SimpleFileMapper(const filesystem::path &path_) : fileInfo(path_.str() + ".dat") {
             openFile();
         }
-        SimpleFileMapper(const filesystem::path &path_, OffsetType offsetBytes) : fileInfo(path_.str() + ".dat"), offsetBytes(offsetBytes) {
-            openFile();
-        }
         
         void openFile() {
             std::error_code error;
-            std::cout << "opening" << fileInfo.path << " with offset of " << offsetBytes << std::endl;
-            file.map(fileInfo.path.str(), offsetBytes, mio::map_entire_file, error);
+            file.map(fileInfo.path.str(), 0, mio::map_entire_file, error);
 //            if(error) {
 //                throw error;
 //            }
@@ -390,11 +384,8 @@ namespace blocksci {
     struct FixedSizeFileMapper {
     private:
         SimpleFileMapper<mode> dataFile;
-        OffsetType offsetItems;
         OffsetType getPos(OffsetType index) const {
-            //std::cout << "getPos: index=" << index << ", offsetItems=" << offsetItems << std::endl;
-            //std::cout << "getPos returning " << (index - offsetItems) * static_cast<OffsetType>(sizeof(T)) << std::endl;
-            return (index - offsetItems) * static_cast<OffsetType>(sizeof(T));
+            return index * static_cast<OffsetType>(sizeof(T));
         }
         
     public:
@@ -404,14 +395,8 @@ namespace blocksci {
         using const_pointer = add_const_ptr_t<T>;
 
         
-        explicit FixedSizeFileMapper(filesystem::path path) : dataFile(std::move(path)), offsetItems(0) {}
-        explicit FixedSizeFileMapper(filesystem::path path, OffsetType offsetItems) : dataFile(std::move(path), offsetItems * static_cast<OffsetType>(sizeof(T))), offsetItems(offsetItems) {
-            std::cout << "FixedSizeFileMapper with offset:" << std::endl;
-            std::cout << "  - offsetItems=" << offsetItems << std::endl;
-            std::cout << "  - sizeof(T)=" << static_cast<OffsetType>(sizeof(T)) << std::endl;
-            std::cout << "  - offsetItems * sizeof(T) " << offsetItems * static_cast<OffsetType>(sizeof(T)) << std::endl << std::endl;
-        }
-
+        explicit FixedSizeFileMapper(filesystem::path path) : dataFile(std::move(path)) {}
+        
         const_pointer operator[](OffsetType index) const {
             assert(index < size());
             const char *pos = dataFile.getDataAtOffset(getPos(index));
@@ -622,7 +607,7 @@ namespace blocksci {
             auto finalData = t.finalize();
             writeUpdateImp<indexNum>(addressNum, finalData, t.size());
         }
-
+        
         template<size_t indexNum = 0>
         add_const_ptr_t<nth_element<indexNum>> getDataAtIndex(uint32_t index) const {
             assert(index < size());
