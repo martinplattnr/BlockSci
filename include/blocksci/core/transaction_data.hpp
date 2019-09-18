@@ -42,6 +42,17 @@ namespace blocksci {
             rawTx = reinterpret_cast<const RawTransaction *>(reinterpret_cast<const char*>(rawTx) + currentTxSize);
             return *this;
         }
+
+        bool operator==(const TxData& other) const {
+            return *rawTx == *other.rawTx
+            && *version == *other.version
+            && *hash == *other.hash;
+            // todo: include the following properties (fix chain_access.hpp:447 (getTxData) first)
+            /*
+            && *spentOutputNums == *other.spentOutputNums
+            && *sequenceNumbers == *other.sequenceNumbers;
+            */
+        }
     };
 }
 

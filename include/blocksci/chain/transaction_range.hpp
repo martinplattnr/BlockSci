@@ -88,8 +88,8 @@ namespace blocksci {
             value_type operator*() const { return tx; }
             value_type operator[](size_type i) const;
             
-            bool operator==(const self_type& rhs) const { return tx == rhs.tx; }
-            bool operator!=(const self_type& rhs) const { return tx != rhs.tx; }
+            bool operator==(const self_type& rhs) const { return tx.txNum == rhs.tx.txNum; }
+            bool operator!=(const self_type& rhs) const { return tx.txNum != rhs.tx.txNum; }
             bool operator<(const self_type& rhs) const { return tx < rhs.tx; }
             bool operator>(const self_type& rhs) const { return tx > rhs.tx; }
             bool operator<=(const self_type& rhs) const { return tx <= rhs.tx; }

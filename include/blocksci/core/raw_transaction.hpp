@@ -70,6 +70,14 @@ namespace blocksci {
         size_t serializedSize() const {
             return sizeof(RawTransaction) + sizeof(Inout) * (inputCount + outputCount);
         }
+
+        bool operator==(const RawTransaction& other) const {
+            return realSize == other.realSize
+            && baseSize == other.baseSize
+            && locktime == other.locktime
+            && inputCount == other.inputCount
+            && outputCount == other.outputCount;
+        }
         
     private:
         const Inout *getInouts() const {
