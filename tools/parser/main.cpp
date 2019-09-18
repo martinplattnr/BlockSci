@@ -142,7 +142,7 @@ void rollbackTransactions(blocksci::BlockHeight blockKeepCount, HashIndexCreator
         AddressWriter(config).rollback(blocksciState);
 
         // todo-fork: change is just to avoid build failure
-        AddressState addressState{config.addressPath(), config.addressPath(), hashDb};
+        AddressState addressState{config.addressPath(), config.rootAddressPath(), hashDb};
         hashDb.db.rollback(blocksciState.txCount, blocksciState.scriptCounts);
         addressState.reset(blocksciState);
     }
@@ -237,7 +237,7 @@ std::vector<blocksci::RawBlock> updateChain(const ParserConfiguration<ParserTag>
             }
         }
         
-        std::cout << "Starting with chain of " << oldChain.blockCount() << " blocks" << std::endl;
+        std::cout << "Starting with chain of " << oldChain.blockCount() << " blocks (incl. genesis block)" << std::endl;
         std::cout << "Removing " << static_cast<blocksci::BlockHeight>(oldChain.blockCount()) - splitPoint << " blocks" << std::endl;
         std::cout << "Adding " << static_cast<blocksci::BlockHeight>(chainBlocks.size()) - splitPoint << " blocks" << std::endl;
         
@@ -279,7 +279,7 @@ std::vector<blocksci::RawBlock> updateChain(const ParserConfiguration<ParserTag>
     BlockProcessor processor{startingTxCount, startingInputCount, startingOutputCount, totalTxCount, maxBlockHeight};
     UTXOState utxoState;
     UTXOAddressState utxoAddressState;
-    AddressState addressState{config.addressPath(), hashDb};
+    AddressState addressState{config.addressPath(), config.rootAddressPath(), hashDb};
     UTXOScriptState utxoScriptState;
     
     utxoAddressState.unserialize(config.utxoAddressStatePath().str());
@@ -345,17 +345,103 @@ ParserConfigurationBase getBaseConfig(const filesystem::path &configPath) {
     return {blocksci::loadBlockchainConfig(configPath.str(), true, 0)};
 }
 
+// extended updateChain() version with maxBlock parameter (todo-fork: needs refactoring)
+void updateChain(const filesystem::path &configFilePath, bool fullParse, blocksci::BlockHeight maxBlock) {
+    auto jsonConf = blocksci::loadConfig(configFilePath.str());
+    blocksci::checkVersion(jsonConf);
+
+    // todo-fork: handle fork parsing here (for every chain, do all steps below upto fork height, copy files, continue parsing root chain etc.
+
+    //blocksci::ChainConfiguration chainConfig = jsonConf.at("chainConfig");
+    //blocksci::DataConfiguration dataConfig{configFilePath.str(), chainConfig, true, 0};
+    blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
+    
+    ParserConfigurationBase config{dataConfig};
+    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath()); // todo-fork: should be the HashIndex of the root chain
+    
+    auto parserConf = jsonConf.at("parser");
+
+    std::vector<blocksci::RawBlock> newBlocks;
+    if (parserConf.find("disk") != parserConf.end()) {
+        ChainDiskConfiguration diskConfig = parserConf.at("disk");
+        ParserConfiguration<FileTag> config{dataConfig, diskConfig};
+        newBlocks = updateChain(config, blocksci::BlockHeight{maxBlock}, hashDb);
+    } else if (parserConf.find("rpc") != parserConf.end()) {
+        blocksci::ChainRPCConfiguration rpcConfig = parserConf.at("rpc");
+        ParserConfiguration<RPCTag> config(dataConfig, rpcConfig);
+        newBlocks = updateChain(config, blocksci::BlockHeight{maxBlock}, hashDb);
+    } else {
+        throw std::runtime_error("Must provide either rpc or disk parsing settings");
+    }
+    
+    // It'd be nice to do this after the indexes are updated, but they currently depend on the chain being fully updated
+    {
+        // Write new RawBlock blocks from the updateChain() method to the blockFile
+        FixedSizeFileWriter<blocksci::RawBlock> blockFile{blocksci::ChainAccess::blockFilePath(config.dataConfig.chainDirectory())};
+        for (auto &block : newBlocks) {
+            blockFile.write(block);
+        }
+    }
+
+    if (fullParse) {
+        // todo: isn't the parsed data getting corrupted if fullParse=false? (HashDb won't contain the new address identifiers and new scriptNums would be assigned?)
+        updateHashDB(config, hashDb);
+        updateAddressDB(config);
+    }
+}
+
+void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse) {
+    auto jsonConf = blocksci::loadConfig(configFilePath.str());
+    blocksci::checkVersion(jsonConf);
+
+    // todo-fork: handle fork parsing here (for every chain, do all steps below upto fork height, copy files, continue parsing root chain etc.
+
+    //blocksci::ChainConfiguration chainConfig = jsonConf.at("chainConfig");
+    //blocksci::DataConfiguration dataConfig{configFilePath.str(), chainConfig, true, 0};
+    blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
+
+    const blocksci::DataConfiguration* currentDc = &dataConfig.rootDataConfiguration();
+
+    while (currentDc != nullptr) {
+        if (currentDc->childDataConfiguration != nullptr) {
+            // has child chain
+
+            std::cout << "Parse up to height (incl. genesis) " << currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1 << std::endl;
+            updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
+
+            std::cout << "Copy chain/ directory" << std::endl;
+            std::system(("cp -r " + currentDc->chainDirectory().str() + " " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
+
+            std::cout << "Copy parser/ directory" << std::endl;
+            std::system(("cp -r " + currentDc->chainConfig.dataDirectory.str() + "/parser " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
+
+            std::cout << "Remove parser/blockList.dat" << std::endl;
+            std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/blockList.dat").c_str());
+        }
+
+        std::cout << "Parse up to height (incl. genesis) " << 0 << std::endl;
+        updateChain(currentDc->configPath, true, 0);
+
+        currentDc = currentDc->childDataConfiguration.get();
+    }
+}
+
+
+
+// original single-chain version
 void updateChain(const filesystem::path &configFilePath, bool fullParse) {
     auto jsonConf = blocksci::loadConfig(configFilePath.str());
     blocksci::checkVersion(jsonConf);
-    
-    blocksci::ChainConfiguration chainConfig = jsonConf.at("chainConfig");
-    blocksci::DataConfiguration dataConfig{configFilePath.str(), chainConfig, true, 0};
-    
+
+    //blocksci::ChainConfiguration chainConfig = jsonConf.at("chainConfig");
+    //blocksci::DataConfiguration dataConfig{configFilePath.str(), chainConfig, true, 0};
+    blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
+
     ParserConfigurationBase config{dataConfig};
-    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath());
-    
+    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath()); // todo-fork: should be the HashIndex of the root chain
+
     auto parserConf = jsonConf.at("parser");
+    // parser.maxBlockNum is a block count excl. the genesis block
     blocksci::BlockHeight maxBlock = parserConf.at("maxBlockNum");
     
     std::vector<blocksci::RawBlock> newBlocks;
@@ -396,7 +482,7 @@ int main(int argc, char * argv[]) {
     //    --data-directory /Users/hkalodner/bitcoin-samp
     //    --coin-directory /Users/hkalodner/Library/Application\ Support/Bitcoin
     
-    enum class mode {generateConfig, update, updateCore, updateIndexes, updateHashIndex, updateAddressIndex, compactIndexes, help, doctor};
+    enum class mode {generateConfig, update, updateForkAware, updateCore, updateIndexes, updateHashIndex, updateAddressIndex, compactIndexes, help, doctor};
     mode selected = mode::help;
     
     bool enableRPC = false;
@@ -455,6 +541,7 @@ int main(int argc, char * argv[]) {
     
     auto generateConfigCommand = clipp::command("generate-config").set(selected,mode::generateConfig) % "Create new BlockSci configuration";
     auto updateCommand = clipp::command("update").set(selected,mode::update) % "Update all BlockSci data";
+    auto updateForkAwareCommand = clipp::command("update-fork-aware").set(selected,mode::updateForkAware) % "Update all BlockSci data (fork-aware)";
     auto updateCoreCommand = clipp::command("core-update").set(selected,mode::updateCore) % "Update just the core BlockSci data (excluding indexes)";
     auto indexUpdateCommand = clipp::command("index-update").set(selected,mode::updateIndexes) % "Update indexes to latest chain state";
     auto addressIndexUpdateCommand = clipp::command("address-index-update").set(selected,mode::updateAddressIndex) % "Update address index to latest state";
@@ -465,7 +552,7 @@ int main(int argc, char * argv[]) {
     std::string configFilePathString;
     auto configFileOpt = clipp::value("config file", configFilePathString) % "Path to config file";
     
-    auto commands = (generateConfigCommand, configOptions) | updateCommand | updateCoreCommand | indexUpdateCommand | addressIndexUpdateCommand | hashIndexUpdateCommand | compactIndexesCommand | doctorCommand;
+    auto commands = (generateConfigCommand, configOptions) | updateCommand | updateForkAwareCommand | updateCoreCommand | indexUpdateCommand | addressIndexUpdateCommand | hashIndexUpdateCommand | compactIndexesCommand | doctorCommand;
     
     auto cli = (configFileOpt, commands);
     
@@ -592,6 +679,15 @@ int main(int argc, char * argv[]) {
             
             break;
         }
+        case mode::updateForkAware: {
+            auto config = getBaseConfig(configFilePath);
+            lockDataDirectory(config);
+            updateChainForkAware(configFilePath, selected == mode::update);
+
+            unlockDataDirectory(config);
+            break;
+        }
+
         case mode::update:
         case mode::updateCore: {
             // Make sure disk space and open files limit are sufficient

@@ -31,7 +31,8 @@ namespace blocksci {
 
         // todo-fork: refactor creation of DataConfiguration, shared pointer assignment is a mess
         if (chainConfig.parentChainConfigPath.length()) {
-            DataConfiguration dc{configPath, chainConfig, errorOnReorg, blocksIgnored, loadBlockchainConfig(chainConfig.parentChainConfigPath.str(), errorOnReorg, blocksIgnored)};
+            DataConfiguration dc{configPath, chainConfig, errorOnReorg, blocksIgnored, std::make_shared<DataConfiguration>(loadBlockchainConfig(chainConfig.parentChainConfigPath.str(), errorOnReorg, blocksIgnored))};
+            dc.parentDataConfiguration->childDataConfiguration = std::make_shared<DataConfiguration>(dc);
             return dc;
         }
         else {
@@ -115,7 +116,7 @@ namespace blocksci {
         createDirectory(mempoolDirectory());
     }
 
-    DataConfiguration::DataConfiguration(const std::string &configPath_, ChainConfiguration &chainConfig_, bool errorOnReorg_, BlockHeight blocksIgnored_, DataConfiguration parentDataConfiguration_) :configPath(configPath_), errorOnReorg(errorOnReorg_), blocksIgnored(blocksIgnored_), chainConfig(chainConfig_), parentDataConfiguration(std::make_shared<DataConfiguration>(parentDataConfiguration_)) {
+    DataConfiguration::DataConfiguration(const std::string &configPath_, ChainConfiguration &chainConfig_, bool errorOnReorg_, BlockHeight blocksIgnored_, std::shared_ptr<DataConfiguration> parentDataConfiguration_) :configPath(configPath_), errorOnReorg(errorOnReorg_), blocksIgnored(blocksIgnored_), chainConfig(chainConfig_), parentDataConfiguration(std::move(parentDataConfiguration_)) {
         createDirectory(chainConfig.dataDirectory);
         createDirectory(scriptsDirectory());
         createDirectory(chainDirectory());

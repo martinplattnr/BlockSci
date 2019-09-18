@@ -119,7 +119,7 @@ namespace blocksci {
         uint256 lastBlockHash;
         const uint256 *lastBlockHashDisk = nullptr; //TODO: comment
 
-        /** Number of the highest loaded block */
+        /** Number of the highest loaded block, including genesis block, eg. is 2 if 1 block is mined on the genesis block */
         BlockHeight maxHeight = 0;
 
         /** Number of the highest loaded transaction */
@@ -144,6 +144,7 @@ namespace blocksci {
 
         void setup() {
             if (blocksIgnored <= 0) {
+                // todo: add -1 to have maxHeight=0 if only the genesis block is loaded
                 maxHeight = static_cast<BlockHeight>(blockFile.size()) + blocksIgnored;
             } else {
                 maxHeight = blocksIgnored;
@@ -157,9 +158,9 @@ namespace blocksci {
                 forkInputIndex = 0; // todo-fork
             }
 
-            if (maxHeight > BlockHeight(0)) {
+            if (maxHeight > BlockHeight(0)) { // todo: change to >=
                 std::cout << "first blockFile access from " << getChainType() << " for height " << static_cast<OffsetType>(maxHeight) - 1 << std::endl;
-                auto maxLoadedBlock = blockFile[static_cast<OffsetType>(maxHeight) - 1];
+                auto maxLoadedBlock = blockFile[static_cast<OffsetType>(maxHeight) - 1]; // todo: remove - 1
                 // auto maxLoadedBlock = getBlock(maxHeight - 1);
                 lastBlockHash = maxLoadedBlock->hash;
                 _maxLoadedTx = maxLoadedBlock->firstTxIndex + maxLoadedBlock->txCount;

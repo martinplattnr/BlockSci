@@ -156,6 +156,7 @@ struct ChainIndex {
     
     void update(const ConfigType &config, blocksci::BlockHeight maxblockHeight);
 
+    // todo: maxblockHeight might be a misnomer, as it actually represents the block count incl. the genesis block (starting at 1)
     std::vector<BlockType> generateChain(blocksci::BlockHeight maxBlockHeight) const {
         std::vector<BlockType> chain;
         const BlockType *maxHeightBlock = nullptr;
@@ -173,7 +174,7 @@ struct ChainIndex {
         
         blocksci::uint256 nullHash;
         nullHash.SetNull();
-        
+
         auto hash = maxHeightBlock->hash;
         
         while (hash != nullHash) {

@@ -850,7 +850,7 @@ std::vector<blocksci::RawBlock> BlockProcessor::addNewBlocks(const ParserConfigu
     auto discardFunc = [](RawTransaction &) { return false; };
     
     auto progressBar = blocksci::makeProgressBar(totalTxCount, [=](RawTransaction &tx) {
-        std::cout << ", Block " << tx.blockHeight << "/" << maxBlockHeight;
+        std::cout << ", Block " << tx.blockHeight << "/" << maxBlockHeight << " (incl. genesis block)";
     });
     
     /* Advance function of the last step

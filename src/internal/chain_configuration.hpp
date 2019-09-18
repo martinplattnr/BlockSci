@@ -26,6 +26,8 @@ namespace blocksci {
         // name of the coin, eg. "bitcoin", "bitcoin_testnet", "bitcoin_regtest", "bitcoin_cash", etc.
         std::string coinName;
 
+        // todo-fork: add type (standalone or fork/child)
+
         //todo-fork: ChainId::Enum chainId;
 
         // data directory of this chain
@@ -46,7 +48,9 @@ namespace blocksci {
 
         //std::vector<std::string> forkDataDirectories;
         filesystem::path parentChainConfigPath;
-        std::shared_ptr<ChainConfiguration> parentChainConfiguration;
+
+        // todo-fork: not needed?
+        // std::shared_ptr<ChainConfiguration> parentChainConfiguration;
 
         BlockHeight firstForkedBlockHeight;
         

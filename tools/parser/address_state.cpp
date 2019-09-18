@@ -23,13 +23,14 @@ namespace {
     static constexpr auto scriptCountsFileName = "scriptCounts.txt";
 }
 
-AddressState::AddressState(filesystem::path path_, HashIndexCreator &hashDb) : path(std::move(path_)), db(hashDb), addressBloomFilters(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
-    return std::make_unique<AddressBloomFilter<tag>>(path/std::string(bloomFileName));
+AddressState::AddressState(filesystem::path path_, filesystem::path rootPath_, HashIndexCreator &hashDb) : path(std::move(path_)), rootPath(std::move(rootPath_)), db(hashDb), addressBloomFilters(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
+    return std::make_unique<AddressBloomFilter<tag>>(rootPath/std::string(bloomFileName));
 }))  {
     // todo-fork: use local data for the multi-address-maps
     blocksci::for_each(multiAddressMaps, [&](auto &multiAddressMap) {
         std::stringstream ss;
         ss << multiAddressFileName << "_" << dedupAddressName(multiAddressMap.type) << ".dat";
+        // the multi address map files are stored locally and per-chain, in the chain's output directory, not in the root chain's directory
         multiAddressMap.unserialize((path/ss.str()).str());
     });
 
@@ -52,10 +53,12 @@ AddressState::~AddressState() {
     blocksci::for_each(multiAddressMaps, [&](auto &multiAddressMap) {
         std::stringstream ss;
         ss << multiAddressFileName << "_" << dedupAddressName(multiAddressMap.type) << ".dat";
+        // the multi address map files are stored locally and per-chain, in the chain's output directory, not in the root chain's directory
         multiAddressMap.serialize((path/ss.str()).str());
     });
-    
-    std::ofstream outputFile((path/std::string(scriptCountsFileName)).str());
+
+    // the scripts-counts file is stored once for all related (forked) chains
+    std::ofstream outputFile((rootPath/std::string(scriptCountsFileName)).str());
     for (auto value : scriptIndexes) {
         outputFile << value << " ";
     }

@@ -61,7 +61,7 @@ void replayBlock(const ParserConfiguration<FileTag> &config, blocksci::BlockHeig
     
     HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath());
     // todo-fork: change is just to avoid build failure
-    AddressState addressState{config.addressPath(), config.addressPath(), hashDb};
+    AddressState addressState{config.addressPath(), config.rootAddressPath(), hashDb};
     blocksci::ChainAccess chainAccess{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg};
     blocksci::ScriptAccess scripts{config.dataConfig.scriptsDirectory()};
     

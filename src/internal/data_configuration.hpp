@@ -30,7 +30,7 @@ namespace blocksci {
         DataConfiguration() {}
 
         DataConfiguration(const std::string &configPath, ChainConfiguration &config, bool errorOnReorg, BlockHeight blocksIgnored);
-        DataConfiguration(const std::string &configPath, ChainConfiguration &config, bool errorOnReorg, BlockHeight blocksIgnored, DataConfiguration parentDataConfiguration);
+        DataConfiguration(const std::string &configPath, ChainConfiguration &config, bool errorOnReorg, BlockHeight blocksIgnored, std::shared_ptr<DataConfiguration> parentDataConfiguration);
 
         std::string configPath;
         bool errorOnReorg;
@@ -43,12 +43,21 @@ namespace blocksci {
         ChainConfiguration chainConfig;
 
         std::shared_ptr<DataConfiguration> parentDataConfiguration;
-        
+        std::shared_ptr<DataConfiguration> childDataConfiguration;
+
         bool isNull() const {
             return chainConfig.dataDirectory.empty();
         }
 
-        DataConfiguration& rootDataConfiguration(){
+        const DataConfiguration& rootDataConfiguration() const{
+            const DataConfiguration* current = this;
+            while (current->parentDataConfiguration != nullptr) {
+                current = current->parentDataConfiguration.get();
+            }
+            return *current;
+        }
+
+        DataConfiguration& rootDataConfiguration() {
             DataConfiguration* current = this;
             while (current->parentDataConfiguration != nullptr) {
                 current = current->parentDataConfiguration.get();
@@ -57,8 +66,7 @@ namespace blocksci {
         }
         
         filesystem::path scriptsDirectory() const {
-            // return this->rootDataConfiguration().chainConfig.dataDirectory/"scripts";
-            return chainConfig.dataDirectory/"scripts";
+            return this->rootDataConfiguration().chainConfig.dataDirectory/"scripts";
         }
         
         filesystem::path chainDirectory() const {
@@ -70,11 +78,12 @@ namespace blocksci {
         }
         
         filesystem::path addressDBFilePath() const {
-            return chainConfig.dataDirectory/"addressesDb";
+            return this->rootDataConfiguration().chainConfig.dataDirectory/"addressesDb";
         }
         
         filesystem::path hashIndexFilePath() const {
-            return chainConfig.dataDirectory/"hashIndex";
+            // return path of root chain, if available
+            return this->rootDataConfiguration().chainConfig.dataDirectory/"hashIndex";
         }
         
         filesystem::path pidFilePath() const {

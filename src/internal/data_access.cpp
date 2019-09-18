@@ -22,7 +22,7 @@ namespace blocksci {
     //chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.chainConfig.parentChainConfigPath, config.chainConfig.firstForkedBlockHeight)},
     chain{std::make_unique<ChainAccess>(config)},
 
-    scripts{std::make_unique<ScriptAccess>(config.rootDataConfiguration().scriptsDirectory())},
+    scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
     //scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
     addressIndex{std::make_unique<AddressIndex>(config.addressDBFilePath(), true)},
     hashIndex{std::make_unique<HashIndex>(config.hashIndexFilePath(), true)},

@@ -29,6 +29,10 @@ struct ParserConfigurationBase {
     filesystem::path parserDirectory() const {
         return filesystem::path{dataConfig.chainConfig.dataDirectory}/"parser";
     }
+    // todo-fork: may need refactoring
+    filesystem::path rootParserDirectory() const {
+        return filesystem::path{dataConfig.rootDataConfiguration().chainConfig.dataDirectory}/"parser";
+    }
 
     // File that contains the serialization of the UTXOState class which maps raw output pointers to output data
     filesystem::path utxoCacheFile() const {
@@ -51,6 +55,13 @@ struct ParserConfigurationBase {
        number of scripts of each type */
     filesystem::path addressPath() const {
         return parserDirectory()/"address";
+    }
+
+    /* Same as addressPath(), but points to the root chain's path in case multiple forks are loaded, otherwise points
+     * to the same value as addressPath(). Both are needed as some data of AddressState is shared between forks,
+     * and some is not, eg. the maps that store the set of addresses that are used multiple times. */
+    filesystem::path rootAddressPath() const {
+        return rootParserDirectory()/"address";
     }
 
     /** Stores the serialized ChainIndex<ParserTag> object

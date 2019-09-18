@@ -68,7 +68,10 @@ class AddressState {
     using AddressBloomFilterPointer = std::unique_ptr<AddressBloomFilter<scriptType>>;
     
     filesystem::path path;
-    
+
+    // path to the parser/addresses directory of the root chain when working with forks, otherwise same as path
+    filesystem::path rootPath;
+
     HashIndexCreator &db;
     
     using AddressMapTuple = blocksci::to_dedup_address_tuple_t<AddressMap>;
