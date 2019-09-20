@@ -166,11 +166,11 @@ namespace blocksci {
 
     /** returns a vector that stores the clusterid for every scriptNum, indexed by scriptNum */
     template <typename ChangeFunc>
-    std::vector<uint32_t> createClusters(BlockRange &chain, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
+    std::vector<uint32_t> createClusters(std::vector<BlockRange> &chains, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
         
         AddressDisjointSets ds(totalScriptCount, std::move(addressStarts));
         
-        auto &access = chain.getAccess();
+        auto &access = chains[0].getAccess();
         
         linkScripthashNested(access, ds);
         
@@ -193,9 +193,11 @@ namespace blocksci {
             }
             return 0;
         };
-        
-        chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
-        
+
+        for (auto chain : chains) {
+            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+        }
+
         ds.resolveAll();
         
         std::vector<uint32_t> parents;
@@ -205,7 +207,8 @@ namespace blocksci {
         }
         return parents;
     }
-    
+
+    /** count number of clusters */
     uint32_t remapClusterIds(std::vector<uint32_t> &parents) {
         uint32_t placeholder = std::numeric_limits<uint32_t>::max();
         std::vector<uint32_t> newClusterIds(parents.size(), placeholder);
@@ -308,7 +311,7 @@ namespace blocksci {
             clusterIndexPaths[static_cast<size_t>(dedupType)] = ClusterAccess::typeIndexFilePath(outputPath, dedupType);
         }
 
-        // Generate cluster files        
+        // Generate cluster files
         std::vector<uint32_t> clusterPositions;
         clusterPositions.resize(clusterCount + 1);
         for (auto parentId : parent) {
@@ -336,12 +339,12 @@ namespace blocksci {
     }
     
     template <typename ChangeFunc>
-    ClusterManager createClusteringImpl(BlockRange &chain, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager createClusteringImpl(std::vector<BlockRange> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
         prepareClusterDataLocation(outputPath, overwrite);
         
         // Perform clustering
 
-        auto &scripts = chain.getAccess().getScripts(); // todo-fork: for forked chains, returns the ScriptAccess of the root chain
+        auto &scripts = chains[0].getAccess().getScripts(); // todo-fork: for forked chains, returns the ScriptAccess of the root chain
         size_t totalScriptCount = scripts.totalAddressCount(); // todo-fork: should be correct already
         
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
@@ -355,23 +358,41 @@ namespace blocksci {
             }
         }
 
-        auto parent = createClusters(chain, scriptStarts, static_cast<uint32_t>(totalScriptCount), std::forward<ChangeFunc>(changeHeuristic), ignoreCoinJoin);
+        auto parent = createClusters(chains, scriptStarts, static_cast<uint32_t>(totalScriptCount), std::forward<ChangeFunc>(changeHeuristic), ignoreCoinJoin);
         uint32_t clusterCount = remapClusterIds(parent);
         serializeClusterData(scripts, outputPath, parent, scriptStarts, clusterCount);
-        return {filesystem::path{outputPath}.str(), chain.getAccess()};
+        return {filesystem::path{outputPath}.str(), chains[0].getAccess()};
     }
     
-    ClusterManager ClusterManager::createClustering(BlockRange &chain, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
         
         auto changeHeuristicL = [&changeHeuristic](const Transaction &tx) -> ranges::any_view<Output> {
             return changeHeuristic(tx);
         };
         
-        return createClusteringImpl(chain, changeHeuristicL, outputPath, overwrite, ignoreCoinJoin);
+        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, ignoreCoinJoin);
     }
     
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, ignoreCoinJoin);
+    }
+
+    ClusterManager ClusterManager::createClustering(BlockRange &chain, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+
+        auto changeHeuristicL = [&changeHeuristic](const Transaction &tx) -> ranges::any_view<Output> {
+            return changeHeuristic(tx);
+        };
+
+        std::vector<BlockRange> chains;
+        chains.push_back(chain);
+
+        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, ignoreCoinJoin);
+    }
+
     ClusterManager ClusterManager::createClustering(BlockRange &chain, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
-        return createClusteringImpl(chain, changeHeuristic, outputPath, overwrite, ignoreCoinJoin);
+        std::vector<BlockRange> chains;
+        chains.push_back(chain);
+        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, ignoreCoinJoin);
     }
 } // namespace blocksci
 
