@@ -30,8 +30,18 @@ int main(int argc, char * argv[]) {
     }
     
     // todo-fork: initialized with the forked blockchain or ChainManager
-    blocksci::Blockchain chain(configLocation);
+    //blocksci::Blockchain chain(configLocation);
 
-    blocksci::ClusterManager::createClustering(chain, blocksci::heuristics::NoChange{}, outputLocation, overwrite);
+    //blocksci::Blockchain btcChain("/home/martin/testchains/blocksci/btc-btc/btc-main-config-forkenabled.json");
+    //blocksci::Blockchain btcForkChain("/home/martin/testchains/blocksci/btc-btc/btc-fork-config-forkenabled.json");
+
+    blocksci::Blockchain btcChain("/mnt/data/blocksci/bitcoin/current-root-v0.6/config.json");
+    blocksci::Blockchain bchForkChain("/mnt/data/blocksci/bitcoin-cash/current-fork-v0.6/config.json");
+
+    std::vector<blocksci::BlockRange> chains;
+    chains.push_back(btcChain);
+    chains.push_back(bchForkChain);
+
+    blocksci::ClusterManager::createClustering(chains, blocksci::heuristics::NoChange{}, outputLocation, overwrite);
     return 0;
 }
