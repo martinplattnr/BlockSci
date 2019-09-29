@@ -121,6 +121,7 @@ namespace blocksci {
         RANGES_FOR (auto input, inputs()) {
             if (input == search) {
                 pointers.emplace_back(txNum, i);
+                // todo: couldn't we "break;" here, as an output can only be spent by max. one input (on one chain)
             }
             i++;
         }

@@ -136,8 +136,8 @@ namespace blocksci {
     
     struct BLOCKSCI_EXPORT ScriptHashData : public ScriptDataBase {
         union {
-            uint160 hash160;
-            uint256 hash256;
+            uint160 hash160; // used if a P2SH script
+            uint256 hash256; // used if a P2WSH script
         };
         RawAddress wrappedAddress;
         bool isSegwit;

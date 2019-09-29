@@ -21,6 +21,7 @@ scriptFiles(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
 }
 
 blocksci::OffsetType AddressWriter::serializeNew(const AnyScriptOutput &output, uint32_t txNum, bool topLevel) {
+    // calls serializeNew in address_writer.hpp
     return mpark::visit([&](auto &scriptOutput) { return this->serializeNew(scriptOutput, txNum, topLevel); }, output.wrapped);
 }
 

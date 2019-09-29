@@ -87,6 +87,7 @@ public:
         auto data = output.data.getData(txNum, topLevel);
         file.write(data);
         assert(output.scriptNum == file.size());
+        // visitWrapped is currently only implemented for ScriptOutputData<blocksci::AddressType::Enum::MULTISIG>
         output.data.visitWrapped([&](auto &wrappedOutput) {
             if (wrappedOutput.isNew) {
                 serializeNew(wrappedOutput, txNum, false);

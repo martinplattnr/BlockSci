@@ -331,6 +331,9 @@ std::vector<std::function<void(RawTransaction &tx)>> GenerateScriptInputStep::st
     return {[&](RawTransaction &tx) {
         uint16_t i = 0;
         for (auto &scriptOutput : tx.scriptOutputs) {
+            /* AnySpendData is currently only relevant for type=blocksci::AddressType::Enum::MULTISIG
+             * but the data does not seem to be used...
+             */
             utxoAddressState.addOutput(AnySpendData{scriptOutput}, {tx.txNum, i});
             i++;
         }
@@ -354,6 +357,7 @@ std::vector<std::function<void(RawTransaction &tx)>> GenerateScriptInputStep::st
 std::vector<std::function<void(RawTransaction &tx)>> ProcessAddressesStep::steps() {
     return {[&](RawTransaction &tx) {
         for (auto &scriptOutput : tx.scriptOutputs) {
+            // calls ScriptOutput::resolve()
             scriptOutput.resolve(addressState);
         }
         for (auto &scriptInput : tx.scriptInputs) {
@@ -419,6 +423,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
     return {[&](RawTransaction &tx) {        
         for (auto &scriptOutput : tx.scriptOutputs) {
             if (scriptOutput.isNew()) {
+                // serialize output scripts; for multisig scripts, recursively serializes the cointained multisig addresses
                 addressWriter.serializeNew(scriptOutput, tx.txNum, true);
             }
         }

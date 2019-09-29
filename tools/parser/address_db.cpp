@@ -31,6 +31,7 @@ AddressDB::~AddressDB() {
     clearOutputCache();
 }
 
+// called by ParserIndex<T>::runUpdate(const blocksci::State &state) (parser_index.hpp)
 void AddressDB::processTx(const blocksci::RawTransaction *tx, uint32_t txNum, const blocksci::ChainAccess &, const blocksci::ScriptAccess &scripts) {
     std::unordered_set<RawAddress> addedAddresses;
     std::function<bool(const RawAddress &)> visitFunc = [&](const RawAddress &a) {

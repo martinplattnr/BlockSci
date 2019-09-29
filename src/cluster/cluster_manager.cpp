@@ -198,6 +198,7 @@ namespace blocksci {
             chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
         }
 
+        // this step is not necessary, but can be processed in parallel and speeds up the find() operations in code below
         ds.resolveAll();
         
         std::vector<uint32_t> parents;

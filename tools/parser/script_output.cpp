@@ -79,7 +79,7 @@ static bool MatchMultisig(const CScriptView& script, ScriptOutputData<blocksci::
     return (it + 1 == script.end());
 }
 
-
+// returns ScriptOutputData<blocksci::AddressType::Enum>
 ScriptOutputDataType extractScriptData(const blocksci::CScriptView &scriptPubKey, bool p2shActivated, bool witnessActivated) {
     using blocksci::AddressType;
     using blocksci::CScript;
@@ -117,7 +117,7 @@ ScriptOutputDataType extractScriptData(const blocksci::CScriptView &scriptPubKey
     // So long as script passes the IsUnspendable() test and all but the first
     // byte passes the IsPushOnly() test we don't care what exactly is in the
     // script.
-    
+
     if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_RETURN && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
         return ScriptOutputData<AddressType::Enum::NULL_DATA>{scriptPubKey};
     }
@@ -170,6 +170,7 @@ void AnyScriptOutput::check(AddressState &state) {
 }
 
 uint32_t AnyScriptOutput::resolve(AddressState &state) {
+    // calls ScriptOutput::resolve()
     return mpark::visit([&](auto &output) { return output.resolve(state); }, wrapped);
 }
 
