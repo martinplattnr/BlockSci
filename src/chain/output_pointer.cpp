@@ -35,6 +35,10 @@ namespace blocksci {
         std::unordered_set<InputPointer> allPointers;
         allPointers.reserve(pointers.size());
         for (auto &pointer : pointers) {
+            /* todo-fork:
+             * if pointer.chainId != access.chainId { // error: this function currently only works in single-chain mode }
+             * //DataAccess* access = access.getByChainId(pointer.getByChainId(pointer.chainId);
+             */
             auto inputTx = Output(pointer, access).getSpendingTx();
             if(inputTx) {
                 auto inputPointers = inputTx->getInputPointers(pointer);

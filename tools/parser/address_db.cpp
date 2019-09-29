@@ -55,7 +55,7 @@ void AddressDB::processTx(const blocksci::RawTransaction *tx, uint32_t txNum, co
     
     for (uint16_t i = 0; i < tx->outputCount; i++) {
         auto &output = tx->getOutput(i);
-        auto pointer = InoutPointer{txNum, i};
+        auto pointer = InoutPointer{txNum, i}; // todo-fork: add config.dataConfig.chainConfig.coinId as (first) parameter
         addAddressOutput(blocksci::RawAddress{output.getAddressNum(), output.getType()}, pointer);
     }
 }

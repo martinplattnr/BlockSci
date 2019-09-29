@@ -420,7 +420,7 @@ void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse
         }
 
         std::cout << "Parse up to height (incl. genesis) " << 0 << std::endl;
-        updateChain(currentDc->configPath, true, 0);
+        updateChain(currentDc->configPath, true, 0); // todo-fork: use maxBlockNum from parser config
 
         currentDc = currentDc->childDataConfiguration.get();
     }

@@ -26,9 +26,9 @@ namespace blocksci {
         // name of the coin, eg. "bitcoin", "bitcoin_testnet", "bitcoin_regtest", "bitcoin_cash", etc.
         std::string coinName;
 
-        // todo-fork: add type (standalone or fork/child)
+        // todo-fork: add type (standalone or fork/child), defaults to standalone
 
-        //todo-fork: ChainId::Enum chainId;
+        //todo-fork: ChainId::Enum chainId; // derive from coinName
 
         // data directory of this chain
         filesystem::path dataDirectory;

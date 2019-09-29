@@ -20,6 +20,7 @@ namespace {
     template<blocksci::AddressType::Enum type>
     struct ScriptCreateFunctor {
         static blocksci::ScriptVariant f(uint32_t scriptNum, blocksci::DataAccess &access) {
+            // todo-fork: add chainId
             return blocksci::ScriptAddress<type>(scriptNum, access.getScripts().getScriptData<dedupType(type)>(scriptNum), access);
         }
     };

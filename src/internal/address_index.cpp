@@ -92,14 +92,16 @@ namespace blocksci {
         auto rawOutputPointerRange = ColumnIterator(db.get(), getOutputColumn(address.type).get(), prefix);
         return rawOutputPointerRange | ranges::view::transform([](std::pair<MemoryView, MemoryView> pair) -> InoutPointer {
             InoutPointer outPoint;
+            // todo-fork: add chainId
             uint8_t txNumData[4];
             uint8_t outputNumData[2];
-            
+
             auto &key = pair.first;  // Query result
             key.data += sizeof(uint32_t);  // Skip the scriptNum in the key (first 4 bytes), as it is known already
             memcpy(txNumData, key.data, 4);
             key.data += sizeof(txNumData); // Move the key.data pointer forward
             memcpy(outputNumData, key.data, 2);
+            // todo-fork: add chainId
             endian::big_endian::get(outPoint.txNum, txNumData);
             endian::big_endian::get(outPoint.inoutNum, outputNumData);
             return outPoint;
@@ -145,6 +147,7 @@ namespace blocksci {
         for (auto &pair : outputCache) {
             const RawAddress &address = pair.first;
             const InoutPointer &pointer = pair.second;
+            // todo-fork: add chainId
             uint8_t txNumData[4];
             uint8_t outputNumData[2];
             endian::big_endian::put(pointer.txNum, txNumData);
