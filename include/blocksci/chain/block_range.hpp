@@ -131,14 +131,17 @@ namespace blocksci {
         template <typename ResultType, typename MapFunc, typename ReduceFunc>
         std::enable_if_t<internal::is_callable<MapFunc, BlockRange, int>::value, ResultType>
         mapReduce(MapFunc mapFunc, ReduceFunc reduceFunc) {
-            auto segments = segment(std::thread::hardware_concurrency());
+            //auto segments = segment(std::thread::hardware_concurrency());
+            // temporarily set segments to 1 to ensure sequential processing, todo: revert
+            auto segments = segment(1);
             return internal::mapReduceBlocksImp<ResultType>(segments.begin(), segments.end(), mapFunc, reduceFunc, 0);
         }
         
         template <typename ResultType, typename MapFunc, typename ReduceFunc>
         std::enable_if_t<internal::is_callable<MapFunc, BlockRange>::value, ResultType>
         mapReduce(MapFunc mapFunc, ReduceFunc reduceFunc) {
-            auto segments = segment(std::thread::hardware_concurrency());
+            //auto segments = segment(std::thread::hardware_concurrency());
+            auto segments = segment(1); // todo: revert
             return internal::mapReduceBlocksImp<ResultType>(segments.begin(), segments.end(), [&](const BlockRange &blocks, int) { return mapFunc(blocks); }, reduceFunc, 0);
         }
         

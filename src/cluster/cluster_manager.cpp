@@ -114,11 +114,21 @@ namespace blocksci {
         uint32_t size() const {
             return disjoinSets.size();
         }
+
+        auto addressIndex(const Address address) const {
+            return addressStarts.at(dedupType(address.type)) + address.scriptNum - 1;
+        }
         
         void link_addresses(const Address &address1, const Address &address2) {
-            auto firstAddressIndex = addressStarts.at(dedupType(address1.type)) + address1.scriptNum - 1;
-            auto secondAddressIndex = addressStarts.at(dedupType(address2.type)) + address2.scriptNum - 1;
+            //auto firstAddressIndex = addressStarts.at(dedupType(address1.type)) + address1.scriptNum - 1;
+            //auto secondAddressIndex = addressStarts.at(dedupType(address2.type)) + address2.scriptNum - 1;
+            auto firstAddressIndex = addressIndex(address1);
+            auto secondAddressIndex = addressIndex(address2);
             disjoinSets.unite(firstAddressIndex, secondAddressIndex);
+        }
+
+        void link_clusters(const uint32_t cluster1Id, const uint32_t cluster2Id) {
+            disjoinSets.unite(cluster1Id, cluster2Id);
         }
         
         void resolveAll() {
@@ -173,9 +183,12 @@ namespace blocksci {
         auto &access = chains[0].getAccess();
         
         linkScripthashNested(access, ds);
-        
+
+        // todo: add user option to log merge events or remove this feature entirely
+        std::ofstream logfile;
+
         auto extract = [&](const BlockRange &blocks, int threadNum) {
-            auto progressThread = static_cast<int>(std::thread::hardware_concurrency()) - 1;
+            auto progressThread = static_cast<int>(0); // todo: revert, temporary change to show progress bar if there is just 1 thread
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
             if (threadNum != progressThread) {
                 progressBar.setSilent();
@@ -185,7 +198,19 @@ namespace blocksci {
                 for (auto tx : block) {
                     auto pairs = processTransaction(tx, changeHeuristic, ignoreCoinJoin);
                     for (auto &pair : pairs) {
-                        ds.link_addresses(pair.first, pair.second);
+                        uint32_t cluster1 = ds.find(ds.addressIndex(pair.first));
+                        uint32_t cluster2 = ds.find(ds.addressIndex(pair.second));
+                        if (cluster2 > cluster1) {
+                            std::swap(cluster1, cluster2);
+                        }
+                        if (cluster1 != cluster2) {
+                            // log (block, block.timestamp, txNum, cluster1, cluster2)
+                            logfile << block.height() << ";" << block.timestamp() << ";" << tx.txNum << ";" << cluster1 << ";" << cluster2 << std::endl;
+                        }
+
+                        ds.link_clusters(cluster1, cluster2);
+
+                        //ds.link_addresses(pair.first, pair.second);
                     }
                     progressBar.update(txNum);
                     txNum++;
@@ -195,7 +220,10 @@ namespace blocksci {
         };
 
         for (auto chain : chains) {
+            logfile.open ("cluster_log_" + chain.getAccess().config.chainConfig.coinName + ".txt");
+            // todo-fork: add option to enable non-parallel (sequential) mode, eg. thread count = 1
             chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+            logfile.close();
         }
 
         // this step is not necessary, but can be processed in parallel and speeds up the find() operations in code below
