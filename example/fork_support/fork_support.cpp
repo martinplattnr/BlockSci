@@ -4,17 +4,16 @@
 
 int main(int argc, const char * argv[]) {
 
-    blocksci::ChainManager asd;
-    asd.loadFullChain("/home/martin/testchains/blocksci/btc-btc/btc-fork-config.json");
-
-    return 0;
-
     std::cout << "### Loading BTC fork ###" << std::endl;
     //blocksci::Blockchain btc{"/mnt/data/blocksci/bitcoin/current-v0.6/config.json"};
     blocksci::Blockchain btcFork{"/home/martin/testchains/blocksci/btc-btc/btc-fork-config.json"};
 
+    std::cout << "btcFork.size():" << btcFork.size() << std::endl;
+
     std::cout << "### Loading BTC main ###" << std::endl;
     blocksci::Blockchain btcMain{"/home/martin/testchains/blocksci/btc-btc/btc-main-config.json"};
+
+    std::cout << "btcFork.size():" << btcFork.size() << std::endl;
 
     //blocksci::Blockchain bch{"/mnt/data/blocksci/bitcoin-cash/current/config_fork_support.json"};
 
