@@ -480,7 +480,7 @@ void backUpdateTxes(const ParserConfigurationBase &config) {
             // Set the forward-reference to the tx number of the tx that contains the spending input
             output.setLinkedTxNum(update.txNum);
 
-            std::cout << "writing " << update.txNum << " to " << *txFirstOutput[update.pointer.txNum] + update.pointer.inoutNum << std::endl;
+            //std::cout << "writing " << update.txNum << " to " << *txFirstOutput[update.pointer.txNum] + update.pointer.inoutNum << std::endl;
             preForkLinkedTxNumFile.updateData(*txFirstOutput[update.pointer.txNum] + update.pointer.inoutNum, 0, update.txNum);
             
             count++;
