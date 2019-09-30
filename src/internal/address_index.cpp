@@ -164,7 +164,8 @@ namespace blocksci {
         }
         writeBatch(batch);
     }
-    
+
+    // todo: it seems like this method is never called and thus, the AdressIndex will be in a corrupt state after a rollback (eg. block reorg)
     void AddressIndex::rollback(uint32_t txNum) {
         for_each(AddressType::all(), [&](auto type) {
             auto &column = getOutputColumn(type);

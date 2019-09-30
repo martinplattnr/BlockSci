@@ -22,6 +22,9 @@ public:
     UTXOState() : SerializableMap<RawOutputPointer, UTXO>({blocksci::uint256{}, 0}, {blocksci::uint256{}, 1}) {}
 };
 
+/** Map of UTXOs (identified by InoutPointer) to their scriptNum
+ * This map is used to assign the scriptNum to inputs by looking up the output that the input spends
+ */
 class UTXOScriptState : public SerializableMap<blocksci::InoutPointer, uint32_t> {
 public:
     UTXOScriptState() : SerializableMap<blocksci::InoutPointer, uint32_t>({std::numeric_limits<uint32_t>::max(), 0}, {std::numeric_limits<uint32_t>::max(), 1}) {}

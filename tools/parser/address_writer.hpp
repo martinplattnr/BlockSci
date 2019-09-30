@@ -52,6 +52,7 @@ class AddressWriter {
     template<blocksci::AddressType::Enum type>
     void serializeImp(const ScriptOutput<type> &output, ScriptFile<dedupType(type)> &file, bool topLevel) {
         auto data = file[output.scriptNum - 1];
+        // mark the address as seen for the given address type
         data->saw(type, topLevel);
     }
     

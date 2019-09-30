@@ -361,6 +361,10 @@ std::vector<std::function<void(RawTransaction &tx)>> ProcessAddressesStep::steps
             scriptOutput.resolve(addressState);
         }
         for (auto &scriptInput : tx.scriptInputs) {
+            /* process method is only implemented for 2 address types, otherwise does nothing
+             * - ScriptInputData<blocksci::AddressType::Enum::SCRIPTHASH>
+             * - ScriptInputData<blocksci::AddressType::Enum::WITNESS_SCRIPTHASH>
+             */
             scriptInput.process(addressState);
         }
     }};
@@ -431,11 +435,18 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
         for (size_t i = 0; i < tx.inputs.size(); i++) {
             auto &input = tx.inputs[i];
             auto &scriptInput = tx.scriptInputs[i];
+            /* serializeWrapped is only implemented for 2 address types, otherwise does nothing:
+             * - ScriptInputData<AddressType::Enum::WITNESS_SCRIPTHASH>
+             * - ScriptInputData<AddressType::Enum::SCRIPTHASH>
+             */
             addressWriter.serializeWrapped(scriptInput, tx.txNum, input.utxo.txNum);
         }
     }, [&](RawTransaction &tx) {
         for (auto &scriptOutput : tx.scriptOutputs) {
             if (!scriptOutput.isNew()) {
+                /* mark the existing (serialized) address as seen for the given address type
+                 * may add additional information, eg. the pubkey to an address that so far only appeared as P2PKH,
+                 * and now a P2PK output (which contains the pubkey) comes along */
                 addressWriter.serializeExisting(scriptOutput, true);
             }
         }
@@ -443,6 +454,9 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
         for (size_t i = 0; i < tx.inputs.size(); i++) {
             auto &input = tx.inputs[i];
             auto &scriptInput = tx.scriptInputs[i];
+            /* calls serialize() in address_writer.hpp
+             * may add additional information, eg. the pubkey when a P2PKH address is spent
+             */
             addressWriter.serialize(scriptInput, tx.txNum, input.utxo.txNum);
         }
     }};
