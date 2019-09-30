@@ -29,6 +29,9 @@ namespace blocksci {
     
     void from_json(const json& j, ChainConfiguration& p) {
         j.at("coinName").get_to(p.coinName);
+
+        p.chainId = ChainId::get(p.coinName);
+
         std::string dataDir;
         j.at("dataDirectory").get_to(dataDir);
         p.dataDirectory = dataDir;
@@ -66,6 +69,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::dash(const std::string &chainDir) {
         return {
             "dash",
+            ChainId::get("dash"),
             chainDir,
             {76},
             {16},
@@ -77,6 +81,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::dashTestnet(const std::string &chainDir) {
         return {
             "dash_testnet",
+            ChainId::get("dash_testnet"),
             chainDir,
             {140},
             {19},
@@ -88,6 +93,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::litecoin(const std::string &chainDir) {
         return {
             "litecoin",
+            ChainId::get("litecoin"),
             chainDir,
             {48},
             {50},
@@ -99,6 +105,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::litecoinTestnet(const std::string &chainDir) {
         return {
             "litecoin_testnet",
+            ChainId::get("litecoin_testnet"),
             chainDir,
             {111},
             {58},
@@ -110,6 +117,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::litecoinRegtest(const std::string &chainDir) {
         return {
             "litecoin_regtest",
+            ChainId::get("litecoin_regtest"),
             chainDir,
             {111},
             {58},
@@ -121,6 +129,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::zcash(const std::string &chainDir) {
         return {
             "zcash",
+            ChainId::get("zcash"),
             chainDir,
             {0x1C,0xB8},
             {0x1C,0xBD},
@@ -132,6 +141,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::zcashTestnet(const std::string &chainDir) {
         return {
             "zcash_testnet",
+            ChainId::get("zcash_testnet"),
             chainDir,
             {0x1D,0x25},
             {0x1C,0xBA},
@@ -143,6 +153,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::namecoin(const std::string &chainDir) {
         return {
             "namecoin",
+            ChainId::get("namecoin"),
             chainDir,
             {52},
             {13},
@@ -154,6 +165,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::namecoinTestnet(const std::string &chainDir) {
         return {
             "namecoin_testnet",
+            ChainId::get("namecoin_testnet"),
             chainDir,
             {111},
             {196},
@@ -165,6 +177,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoinRegtest(const std::string &chainDir) {
         return {
             "bitcoin_regtest",
+            ChainId::get("bitcoin_regtest"),
             chainDir,
             {111},
             {196},
@@ -176,8 +189,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoin(const std::string &chainDir) {
         return {
             "bitcoin",
-            // todo-fork: ChainId::BITCOIN,
-            // todo-fork: fork height
+            ChainId::get("bitcoin"),
             chainDir,
             std::vector<unsigned char>(1,0),
             std::vector<unsigned char>(1,5),
@@ -189,6 +201,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoinTestnet(const std::string &chainDir) {
         return {
             "bitcoin_testnet",
+            ChainId::get("bitcoin_testnet"),
             chainDir,
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),
@@ -200,6 +213,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoinCashRegtest(const std::string &chainDir) {
         return {
             "bitcoin_cash_regtest",
+            ChainId::get("bitcoin_cash_regtest"),
             chainDir,
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),
@@ -211,6 +225,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoinCash(const std::string &chainDir) {
         return {
             "bitcoin_cash",
+            ChainId::get("bitcoin_cash"),
             chainDir,
             std::vector<unsigned char>(1,0),
             std::vector<unsigned char>(1,5),
@@ -222,6 +237,7 @@ namespace blocksci {
     ChainConfiguration ChainConfiguration::bitcoinCashTestnet(const std::string &chainDir) {
         return {
             "bitcoin_cash_testnet",
+            ChainId::get("bitcoin_cash_testnet"),
             chainDir,
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),

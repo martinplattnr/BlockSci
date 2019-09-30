@@ -19,6 +19,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <blocksci/core/chain_ids.hpp>
 
 namespace blocksci {
 
@@ -26,9 +27,9 @@ namespace blocksci {
         // name of the coin, eg. "bitcoin", "bitcoin_testnet", "bitcoin_regtest", "bitcoin_cash", etc.
         std::string coinName;
 
-        // todo-fork: add type (standalone or fork/child), defaults to standalone
+        ChainId::Enum chainId;
 
-        //todo-fork: ChainId::Enum chainId; // derive from coinName
+        // todo-fork: add type (standalone or fork/child), defaults to standalone
 
         // data directory of this chain
         filesystem::path dataDirectory;
@@ -52,6 +53,7 @@ namespace blocksci {
         // todo-fork: not needed?
         // std::shared_ptr<ChainConfiguration> parentChainConfiguration;
 
+        // todo-fork: handle fork height as a parameter (json and static methods below)
         BlockHeight firstForkedBlockHeight;
         
         static ChainConfiguration bitcoin(const std::string &chainDir);

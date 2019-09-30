@@ -11,41 +11,140 @@
 #include <cstddef>
 #include <functional>
 #include <tuple>
+#include <stdexcept>
 
 
 namespace blocksci {
-    // todo-fork: add other coins and assign final IDs
+    // todo: class could be refactored to compile-time lookup (enum -> string)
     class ChainId {
     public:
-        enum Enum : uint16_t
+        enum Enum : uint8_t
         {
             UNSPECIFIED = 0,
-            BITCOIN = 1,
-            BITCOIN_CASH = 2,
-            BITCOIN_SV = 3,
-            BITCOIN_GOLD = 4,
-            LITECOIN = 100,
+
+            BITCOIN = 10,
+            BITCOIN_TESTNET,
+            BITCOIN_REGTEST,
+
+            BITCOIN_CASH=20,
+            BITCOIN_CASH_TESTNET,
+            BITCOIN_CASH_REGTEST,
+
+            BITCOIN_CASH_SV=30,
+            BITCOIN_CASH_SV_TESTNET,
+            BITCOIN_CASH_SV_REGTEST,
+
+            LITECOIN=100,
+            LITECOIN_TESTNET,
+            LITECOIN_REGTEST,
+
+            DASH=105,
+            DASH_TESTNET,
+
+            NAMECOIN=110,
+            NAMECOIN_TESTNET,
+
+            ZCASH=115,
+            ZCASH_TESTNET
         };
 
         static std::string getName(const ChainId::Enum& chainId) {
             switch(chainId) {
-                case ChainId::UNSPECIFIED: return "unspecified";
+                case ChainId::UNSPECIFIED : return "unspecified";
+
                 case ChainId::BITCOIN: return "bitcoin";
+                case ChainId::BITCOIN_TESTNET: return "bitcoin_testnet";
+                case ChainId::BITCOIN_REGTEST: return "bitcoin_regtest";
+
                 case ChainId::BITCOIN_CASH: return "bitcoin_cash";
-                case ChainId::BITCOIN_SV: return "bitcoin_sv";
-                case ChainId::BITCOIN_GOLD: return "bitcoin_gold";
+                case ChainId::BITCOIN_CASH_TESTNET: return "bitcoin_cash_testnet";
+                case ChainId::BITCOIN_CASH_REGTEST: return "bitcoin_cash_regtest";
+
+                case ChainId::BITCOIN_CASH_SV: return "bitcoin_cash_sv";
+                case ChainId::BITCOIN_CASH_SV_TESTNET: return "bitcoin_cash_sv_testnet";
+                case ChainId::BITCOIN_CASH_SV_REGTEST: return "bitcoin_cash_sv_regtest";
+
                 case ChainId::LITECOIN: return "litecoin";
+                case ChainId::LITECOIN_TESTNET: return "litecoin_testnet";
+                case ChainId::LITECOIN_REGTEST: return "litecoin_regtest";
+
+                case ChainId::DASH: return "dash";
+                case ChainId::DASH_TESTNET: return "dash_testnet";
+
+                case ChainId::NAMECOIN: return "namecoin";
+                case ChainId::NAMECOIN_TESTNET: return "namecoin_testnet";
+
+                case ChainId::ZCASH: return "zcash";
+                case ChainId::ZCASH_TESTNET: return "zcash_testnet";
             }
-            return "ERROR";
-            // throw error here
+
+            throw std::runtime_error("unknown chain id");
         }
 
         static ChainId::Enum get(std::string name) {
-            if (name == "bitcoin") {
+            if (name == "unspecified") {
+                return ChainId::UNSPECIFIED;
+            }
+
+            else if (name == "bitcoin") {
                 return ChainId::BITCOIN;
             }
+            else if (name == "bitcoin_testnet") {
+                return ChainId::BITCOIN_TESTNET;
+            }
+            else if (name == "bitcoin_regtest") {
+                return ChainId::BITCOIN_REGTEST;
+            }
+
             else if (name == "bitcoin_cash") {
                 return ChainId::BITCOIN_CASH;
+            }
+            else if (name == "bitcoin_cash_testnet") {
+                return ChainId::BITCOIN_CASH_TESTNET;
+            }
+            else if (name == "bitcoin_cash_regtest") {
+                return ChainId::BITCOIN_CASH_REGTEST;
+            }
+
+            else if (name == "bitcoin_cash_sv") {
+                return ChainId::BITCOIN_CASH_SV;
+            }
+            else if (name == "bitcoin_cash_sv_testnet") {
+                return ChainId::BITCOIN_CASH_SV_TESTNET;
+            }
+            else if (name == "bitcoin_cash_sv_regtest") {
+                return ChainId::BITCOIN_CASH_SV_REGTEST;
+            }
+
+            else if (name == "litecoin") {
+                return ChainId::LITECOIN;
+            }
+            else if (name == "litecoin_testnet") {
+                return ChainId::LITECOIN_TESTNET;
+            }
+            else if (name == "litecoin_regtest") {
+                return ChainId::LITECOIN_REGTEST;
+            }
+
+            else if (name == "dash") {
+                return ChainId::DASH;
+            }
+            else if (name == "dash_testnet") {
+                return ChainId::DASH_TESTNET;
+            }
+
+            else if (name == "namecoin") {
+                return ChainId::NAMECOIN;
+            }
+            else if (name == "namecoin_testnet") {
+                return ChainId::NAMECOIN_TESTNET;
+            }
+
+            else if (name == "zcash") {
+                return ChainId::ZCASH;
+            }
+            else if (name == "zcash_testnet") {
+                return ChainId::ZCASH_TESTNET;
             }
         }
     };
