@@ -127,6 +127,9 @@ namespace blocksci {
         uint32_t endTxIndex() const {
             return this->operator[](size() - 1).endTxIndex();
         }
+
+        ChainId::Enum chainId() const;
+        std::string chainName() const;
         
         template <typename ResultType, typename MapFunc, typename ReduceFunc>
         std::enable_if_t<internal::is_callable<MapFunc, BlockRange, int>::value, ResultType>

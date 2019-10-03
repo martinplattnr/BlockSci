@@ -44,8 +44,6 @@ namespace blocksci {
         uint256 getHash() const {
             return rawBlock->hash;
         }
-
-        // todo-fork: ChainId::Enum getChainId() const;
         
         BlockHeight height() const {
             return startHeight();

@@ -45,8 +45,7 @@ namespace blocksci {
     public:
         /** Blockchain-wide transaction number in the same order they appear in the blockchain, also called transaction index */
         uint32_t txNum;
-        // todo-fork: add chain id
-        
+
         Transaction() = default;
         
         Transaction(const TxData &data_, uint32_t txNum_, BlockHeight blockHeight_, uint32_t maxTxCount_, DataAccess &access_) : access(&access_), data(data_), maxTxCount(maxTxCount_), blockHeight(blockHeight_), txNum(txNum_) {}
@@ -148,6 +147,9 @@ namespace blocksci {
         bool isCoinbase() const {
             return inputCount() == 0;
         }
+
+        ChainId::Enum chainId() const;
+        std::string chainName() const;
 
         /* todo-fork: comparison needs refactoring
         bool operator==(const Transaction& other) const {

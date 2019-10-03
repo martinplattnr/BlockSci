@@ -92,6 +92,14 @@ namespace blocksci {
     bool Transaction::observedInMempool() const {
         return access->getMempoolIndex().observed(txNum);
     }
+
+    ChainId::Enum Transaction::chainId() const {
+        return getAccess().chainId;
+    }
+
+    std::string Transaction::chainName() const {
+        return ChainId::getName(getAccess().chainId);
+    }
     
     Block Transaction::block() const {
         return {getBlockHeight(), *access};

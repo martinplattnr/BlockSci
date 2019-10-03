@@ -48,7 +48,7 @@ namespace blocksci {
             ZCASH_TESTNET
         };
 
-        static std::string getName(const ChainId::Enum& chainId) {
+        static inline std::string getName(const ChainId::Enum& chainId) {
             switch(chainId) {
                 case ChainId::UNSPECIFIED : return "unspecified";
 

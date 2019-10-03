@@ -116,8 +116,6 @@ namespace blocksci {
         using size_type = typename iterator::size_type;
         using difference_type = typename iterator::difference_type;
 
-        // todo-fork: add chain id
-
         struct Slice {
             size_type start;
             size_type stop;
@@ -160,7 +158,10 @@ namespace blocksci {
         uint32_t endTxIndex() const {
             return slice.stop;
         }
-        
+
+        ChainId::Enum chainId() const;
+        std::string chainName() const;
+
         DataAccess &getAccess() const {
             return firstTx.getAccess();
         }

@@ -8,13 +8,23 @@
 
 #include <blocksci/chain/blockchain.hpp>
 
+#include <internal/data_access.hpp>
+
 #include <range/v3/action/push_back.hpp>
 #include <range/v3/view/filter.hpp>
 
 #include <algorithm>
 
 namespace blocksci {
-    
+
+    ChainId::Enum BlockRange::chainId() const {
+        return access->chainId;
+    }
+
+    std::string BlockRange::chainName() const {
+        return ChainId::getName(access->chainId);
+    }
+
     std::vector<BlockRange> BlockRange::segment(unsigned int segmentCount) const {
         std::vector<BlockRange> segments;
         

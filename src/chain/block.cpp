@@ -49,12 +49,6 @@ namespace blocksci {
         return ss.str();
     }
 
-    /* todo-fork:
-    ChainId::Enum Block::getChainId() const {
-        return getAccess().chainId;
-    }
-    */
-
     std::ostream &operator<<(std::ostream &os, const blocksci::Block &block) {
         os << block.toString();
         return os;

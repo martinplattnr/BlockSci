@@ -48,6 +48,14 @@ namespace blocksci {
         auto height = firstTx.getAccess().getChain().getBlockHeight(index);
         return {data, index, height, firstTx.maxTxCount, firstTx.getAccess()};
     }
+
+    ChainId::Enum TransactionRange::chainId() const {
+        return getAccess().chainId;
+    }
+
+    std::string TransactionRange::chainName() const {
+        return ChainId::getName(getAccess().chainId);
+    }
     
     CONCEPT_ASSERT(ranges::BidirectionalRange<TransactionRange>());
     CONCEPT_ASSERT(ranges::BidirectionalIterator<TransactionRange::iterator>());

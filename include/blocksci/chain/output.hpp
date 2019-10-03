@@ -106,6 +106,14 @@ namespace blocksci {
         ranges::optional<Input> getSpendingInput() const;
 
         ranges::optional<InputPointer> getSpendingInputPointer() const;
+
+        ChainId::Enum chainId() const {
+            return pointer.chainId;
+        }
+
+        std::string chainName() const {
+            return ChainId::getName(pointer.chainId);
+        }
     };
     
     inline bool BLOCKSCI_EXPORT operator==(const Output& a, const Output& b) {
