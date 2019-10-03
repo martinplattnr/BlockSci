@@ -52,10 +52,12 @@ void AddressDB::processTx(const blocksci::RawTransaction *tx, uint32_t txNum, co
     for (auto &input : inputs) {
         visit(RawAddress{input.getAddressNum(), input.getType()}, visitFunc, scripts);
     }
-    
+
+    // use the chainId of the currently parsed chain to create InoutPointer objects below
+    auto chainId = config.dataConfig.chainConfig.chainId;
     for (uint16_t i = 0; i < tx->outputCount; i++) {
         auto &output = tx->getOutput(i);
-        auto pointer = InoutPointer{txNum, i}; // todo-fork: add config.dataConfig.chainConfig.coinId as (first) parameter
+        auto pointer = InoutPointer{chainId, txNum, i};
         addAddressOutput(blocksci::RawAddress{output.getAddressNum(), output.getType()}, pointer);
     }
 }

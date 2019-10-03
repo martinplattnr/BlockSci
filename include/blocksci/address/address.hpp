@@ -16,6 +16,7 @@
 #include <blocksci/core/typedefs.hpp>
 #include <blocksci/chain/chain_fwd.hpp>
 #include <blocksci/scripts/scripts_fwd.hpp>
+#include <blocksci/core/chain_ids.hpp>
 
 #include <range/v3/view/any_view.hpp>
 
@@ -98,6 +99,7 @@ namespace blocksci {
         EquivAddress getEquivAddresses(bool nestedEquivalent) const;
         
         ranges::any_view<OutputPointer> getOutputPointers() const;
+        ranges::any_view<OutputPointer> getOutputPointers(ChainId::Enum chainId) const;
         int64_t calculateBalance(BlockHeight height) const;
         ranges::any_view<Output> getOutputs() const;
         ranges::any_view<Input> getInputs() const;

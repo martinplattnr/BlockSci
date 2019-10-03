@@ -18,15 +18,17 @@ namespace blocksci {
     DataAccess::DataAccess() = default;
 
     DataAccess::DataAccess(DataConfiguration config_) :
+    chainId(config_.chainConfig.chainId),
     config(std::move(config_)),
     //chain{std::make_unique<ChainAccess>(config.chainDirectory(), config.blocksIgnored, config.errorOnReorg, config.chainConfig.parentChainConfigPath, config.chainConfig.firstForkedBlockHeight)},
     chain{std::make_unique<ChainAccess>(config)},
-
     scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
-    //scripts{std::make_unique<ScriptAccess>(config.scriptsDirectory())},
     addressIndex{std::make_unique<AddressIndex>(config.addressDBFilePath(), true)},
     hashIndex{std::make_unique<HashIndex>(config.hashIndexFilePath(), true)},
     mempoolIndex{std::make_unique<MempoolIndex>(config.mempoolDirectory())} {
+
+
+        // todo: remove
         //ChainConfiguration* current;
         //current = &config.chainConfig;
 

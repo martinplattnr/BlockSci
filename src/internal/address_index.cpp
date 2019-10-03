@@ -86,22 +86,31 @@ namespace blocksci {
         return columnHandles[AddressType::size + static_cast<size_t>(type)];
     }
     
-    ranges::any_view<InoutPointer, ranges::category::forward> AddressIndex::getOutputPointers(const RawAddress &address) const {
-        auto prefixData = reinterpret_cast<const char *>(&address.scriptNum); // todo-fork: add chainid as method parameter and to the prefix
-        std::vector<char> prefix(prefixData, prefixData + sizeof(address.scriptNum));  // vector with scriptNum bytes
+    ranges::any_view<InoutPointer, ranges::category::forward> AddressIndex::getOutputPointers(ChainId::Enum chainId, const RawAddress &address) const {
+        auto prefixDataScriptNum = reinterpret_cast<const char *>(&address.scriptNum);
+        auto prefixDataChainId = reinterpret_cast<const char *>(&chainId);
+        std::vector<char> prefix(prefixDataScriptNum, prefixDataScriptNum + sizeof(address.scriptNum));  // vector with scriptNum bytes
+        prefix.insert(prefix.end(), prefixDataChainId, prefixDataChainId + sizeof(chainId));   // add chainId bytes
+
         auto rawOutputPointerRange = ColumnIterator(db.get(), getOutputColumn(address.type).get(), prefix);
         return rawOutputPointerRange | ranges::view::transform([](std::pair<MemoryView, MemoryView> pair) -> InoutPointer {
             InoutPointer outPoint;
-            // todo-fork: add chainId
+
             uint8_t txNumData[4];
             uint8_t outputNumData[2];
 
             auto &key = pair.first;  // Query result
             key.data += sizeof(uint32_t);  // Skip the scriptNum in the key (first 4 bytes), as it is known already
+
+            memcpy(&outPoint.chainId, key.data, sizeof(ChainId::Enum));
+            key.data += sizeof(ChainId::Enum); // Move the key.data pointer forward
+
             memcpy(txNumData, key.data, 4);
             key.data += sizeof(txNumData); // Move the key.data pointer forward
+
             memcpy(outputNumData, key.data, 2);
-            // todo-fork: add chainId
+
+            // chainId is set above, endian::big_endian::get() is not required for chainId as it's just one byte
             endian::big_endian::get(outPoint.txNum, txNumData);
             endian::big_endian::get(outPoint.inoutNum, outputNumData);
             return outPoint;
@@ -147,13 +156,16 @@ namespace blocksci {
         for (auto &pair : outputCache) {
             const RawAddress &address = pair.first;
             const InoutPointer &pointer = pair.second;
-            // todo-fork: add chainId
+            uint8_t chainId;
             uint8_t txNumData[4];
             uint8_t outputNumData[2];
+            // the endian::big_endian::put() is used to ensure ascending ordering of the keys in RocksDB (it uses BytewiseComparator to sort)
+            endian::big_endian::put(pointer.chainId, &chainId);
             endian::big_endian::put(pointer.txNum, txNumData);
             endian::big_endian::put(pointer.inoutNum, outputNumData);
-            std::array<rocksdb::Slice, 3> keyParts = {{
+            std::array<rocksdb::Slice, 4> keyParts = {{
                 rocksdb::Slice(reinterpret_cast<const char *>(&address.scriptNum), sizeof(address.scriptNum)),
+                rocksdb::Slice(reinterpret_cast<const char *>(&chainId), sizeof(chainId)),
                 rocksdb::Slice(reinterpret_cast<const char *>(&txNumData[0]), 4),
                 rocksdb::Slice(reinterpret_cast<const char *>(&outputNumData[0]), 2)
             }};
@@ -165,8 +177,8 @@ namespace blocksci {
         writeBatch(batch);
     }
 
-    // todo: it seems like this method is never called and thus, the AdressIndex will be in a corrupt state after a rollback (eg. block reorg)
-    void AddressIndex::rollback(uint32_t txNum) {
+    // todo: it seems like this method is never called and thus, the AdressIndex may/will be in a wrong state after a rollback (eg. due to a block reorg)
+    void AddressIndex::rollback(ChainId::Enum chainId, uint32_t txNum) {
         for_each(AddressType::all(), [&](auto type) {
             auto &column = getOutputColumn(type);
             auto it = getOutputIterator(type);
@@ -176,7 +188,7 @@ namespace blocksci {
                 key.remove_prefix(sizeof(uint32_t));
                 InoutPointer outPoint;
                 memcpy(&outPoint, key.data(), sizeof(outPoint));
-                if (outPoint.txNum >= txNum) {
+                if (outPoint.chainId == chainId && outPoint.txNum >= txNum) {
                     batch.Delete(column.get(), it->key());
                 }
             }

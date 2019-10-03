@@ -13,6 +13,7 @@
 #include <blocksci/chain/algorithms.hpp>
 #include <blocksci/chain/range_util.hpp>
 #include <blocksci/scripts/script_variant.hpp>
+#include <blocksci/core/chain_ids.hpp>
 
 #include <scripts/bitcoin_base58.hpp>
 #include <scripts/bitcoin_segwit_addr.hpp>
@@ -34,9 +35,13 @@
 namespace blocksci {
     
     ranges::any_view<OutputPointer> Address::getOutputPointers() const {
-        return access->getAddressIndex().getOutputPointers(*this)
-        // fork-todo: add chainId
-        | ranges::view::transform([](const InoutPointer &pointer) { return OutputPointer(pointer.txNum, pointer.inoutNum); });
+        return access->getAddressIndex().getOutputPointers(access->chainId, *this)
+        | ranges::view::transform([](const InoutPointer &pointer) { return OutputPointer(pointer.chainId, pointer.txNum, pointer.inoutNum); });
+    }
+
+    ranges::any_view<OutputPointer> Address::getOutputPointers(ChainId::Enum chainId) const {
+        return access->getAddressIndex().getOutputPointers(chainId, *this)
+        | ranges::view::transform([](const InoutPointer &pointer) { return OutputPointer(pointer.chainId, pointer.txNum, pointer.inoutNum); });
     }
     
     ranges::any_view<Output> Address::getOutputs() const {
@@ -50,9 +55,10 @@ namespace blocksci {
         | flatMapOptionals();
     }
 
+    // todo-fork: implement multi-chain version
     ranges::any_view<Transaction> Address::getOutputTransactions() const {
         auto _access = access;
-        return _access->getAddressIndex().getOutputPointers(*this)
+        return _access->getAddressIndex().getOutputPointers(access->chainId, *this)
         | ranges::view::transform([](const InoutPointer &pointer) -> uint32_t { return pointer.txNum; })
         | ranges::view::unique
         | ranges::view::transform([_access](uint32_t txNum) { return Transaction(txNum, _access->getChain().getBlockHeight(txNum), *_access); });
@@ -194,10 +200,9 @@ namespace blocksci {
         
         AddressAllTxRange(const Address &searchAddress_, DataAccess *access_) :
         access(access_), searchAddress(searchAddress_),
-        pointers(access_->getAddressIndex().getOutputPointers(searchAddress_)
+        pointers(access_->getAddressIndex().getOutputPointers(access->chainId, searchAddress_)
         | ranges::view::transform([](const InoutPointer &pointer) {
-            // fork-todo: add chainId
-            return OutputPointer(pointer.txNum, pointer.inoutNum);
+            return OutputPointer(pointer.chainId, pointer.txNum, pointer.inoutNum);
         })) {}
     };
     

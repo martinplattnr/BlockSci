@@ -96,7 +96,8 @@ namespace blocksci {
     Block Transaction::block() const {
         return {getBlockHeight(), *access};
     }
-    
+
+    // todo: shouldn't this method only return 1 OutputPointer? the given input can only be spent by max. one output.
     std::vector<OutputPointer> Transaction::getOutputPointers(const InputPointer &pointer) const {
         std::vector<OutputPointer> pointers;
         auto input = Input(pointer, *access);
@@ -105,13 +106,15 @@ namespace blocksci {
         uint16_t i = 0;
         RANGES_FOR (auto output, outputs()) {
             if (output == search) {
-                pointers.emplace_back(txNum, i);
+                pointers.emplace_back(access->chainId, txNum, i);
+                // todo: couldn't we "break;" here, as an output can only be spent by max. one input (on one chain)
             }
             i++;
         }
         return pointers;
     }
-    
+
+    // todo: shouldn't this method only return 1 InputPointer? the given output can only spend max. one input.
     std::vector<InputPointer> Transaction::getInputPointers(const OutputPointer &pointer) const {
         std::vector<InputPointer> pointers;
         auto output = Output(pointer, *access);
@@ -120,7 +123,7 @@ namespace blocksci {
         uint16_t i = 0;
         RANGES_FOR (auto input, inputs()) {
             if (input == search) {
-                pointers.emplace_back(txNum, i);
+                pointers.emplace_back(access->chainId, txNum, i);
                 // todo: couldn't we "break;" here, as an output can only be spent by max. one input (on one chain)
             }
             i++;

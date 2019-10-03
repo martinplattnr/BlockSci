@@ -42,13 +42,22 @@ namespace blocksci {
         
         friend size_t std::hash<Input>::operator()(const Input &) const;
     public:
-        /** Contains data to uniquely identify one input using txNum and inoutNum */
+        /** Contains data to uniquely identify one input using chainId, txNum, and inoutNum */
         InputPointer pointer;
         
         BlockHeight blockHeight;
 
         Input(const InputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, const uint16_t *spentOutputNum_, const uint32_t *sequenceNum_, uint32_t maxTxCount_, DataAccess &access_) :
-        access(&access_), maxTxCount(maxTxCount_), inout(&inout_), spentOutputNum(spentOutputNum_), sequenceNum(sequenceNum_), pointer(pointer_), blockHeight(blockHeight_) {}
+        access(&access_), maxTxCount(maxTxCount_), inout(&inout_), spentOutputNum(spentOutputNum_), sequenceNum(sequenceNum_), pointer(pointer_), blockHeight(blockHeight_) {
+            /* todo-fork: the following check should be active, but requires moving the constructor's definition to the cpp file (hurts performance?)
+             * should be ok that check is disabled as this constructor is only used by InputRange, which is single-chain anyway
+             */
+            /*
+            if (pointer.chainId != access->chainId) {
+                throw std::runtime_error("This method currently only supports single-chain access");
+            }
+            */
+        }
         
         Input(const InputPointer &pointer_, DataAccess &access_);
         
@@ -98,9 +107,7 @@ namespace blocksci {
         Transaction getSpentTx() const;
 
         /** Get OutputPointer of the output that this input spends */
-        OutputPointer getSpentOutputPointer() const {
-            return {inout->getLinkedTxNum(), *spentOutputNum};
-        }
+        OutputPointer getSpentOutputPointer() const;
 
         Output getSpentOutput() const;
     };

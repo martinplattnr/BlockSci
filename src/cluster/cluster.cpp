@@ -79,7 +79,8 @@ namespace blocksci {
             });
         });
     }
-    
+
+    // todo-fork: multi-chain-support
     ranges::any_view<Address> Cluster::getAddresses() const {
         DataAccess *access_ = &clusterAccess->access;
         return getDedupAddresses() | ranges::view::transform([access_](const DedupAddress &address) {
@@ -193,7 +194,8 @@ namespace blocksci {
         }
         return count;
     }
-    
+
+    // todo-fork: multi-chain-support
     ranges::any_view<OutputPointer> Cluster::getOutputPointers() const {
         return getPossibleAddresses(clusterNum, clusterAccess) | ranges::view::transform([](auto && address) { return address.getOutputPointers(); }) | ranges::view::join;
     }

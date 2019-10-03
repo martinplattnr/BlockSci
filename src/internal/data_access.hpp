@@ -31,6 +31,8 @@ namespace blocksci {
      */
     class DataAccess {
     public:
+        ChainId::Enum chainId;
+
         /** Loads and holds blockchain configuration files, needed to load blockchains */
         DataConfiguration config;
 

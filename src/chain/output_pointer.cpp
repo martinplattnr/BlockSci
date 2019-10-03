@@ -27,7 +27,7 @@ namespace blocksci {
     
     std::string OutputPointer::toString() const {
         std::stringstream ss;
-        ss << "OutputPointer(tx_index_from=" << txNum << ", output_index_from=" << inoutNum << ")";
+        ss << "OutputPointer(chain_id_from=" << ChainId::getName(chainId) <<", tx_index_from=" << txNum << ", output_index_from=" << inoutNum << ")";
         return ss.str();
     }
     
@@ -35,10 +35,6 @@ namespace blocksci {
         std::unordered_set<InputPointer> allPointers;
         allPointers.reserve(pointers.size());
         for (auto &pointer : pointers) {
-            /* todo-fork:
-             * if pointer.chainId != access.chainId { // error: this function currently only works in single-chain mode }
-             * //DataAccess* access = access.getByChainId(pointer.getByChainId(pointer.chainId);
-             */
             auto inputTx = Output(pointer, access).getSpendingTx();
             if(inputTx) {
                 auto inputPointers = inputTx->getInputPointers(pointer);
@@ -51,11 +47,14 @@ namespace blocksci {
         | ranges::view::transform([&access](const InputPointer &pointer) { return Input(pointer, access); })
         | ranges::to_vector;
     }
-    
+
     std::vector<Transaction> getTransactions(const std::vector<OutputPointer> &pointers, DataAccess &access) {
         std::unordered_set<blocksci::Transaction> txes;
         txes.reserve(pointers.size() * 2);
         for (auto &pointer : pointers) {
+            if (pointer.chainId != access.chainId) {
+                throw std::runtime_error("This method currently only supports single-chain access");
+            }
             txes.insert(Transaction(pointer.txNum, access.getChain().getBlockHeight(pointer.txNum), access));
             auto inputTx = Output(pointer, access).getSpendingTx();
             if (inputTx) {
@@ -64,7 +63,9 @@ namespace blocksci {
         }
         return {txes.begin(), txes.end()};
     }
-    
+
+    // todo-fork: should be refactored to either support multi-chain access,
+    // or not discard pointer.chainId if it remains in single-chain mode, such that the user can be warned if pointer.chainId != access.chainId
     std::vector<Transaction> getOutputTransactions(const std::vector<OutputPointer> &pointers, DataAccess &access) {
         auto txNums = pointers | ranges::view::transform([](const OutputPointer &pointer) { return pointer.txNum; }) | ranges::to_vector;
         txNums |= ranges::action::sort | ranges::action::unique;

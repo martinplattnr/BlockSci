@@ -10,6 +10,7 @@
 #define address_index_hpp
 
 #include <blocksci/core/address_types.hpp>
+#include <blocksci/core/chain_ids.hpp>
 #include <blocksci/core/core_fwd.hpp>
 
 #include <range/v3/view/any_view.hpp>
@@ -90,7 +91,7 @@ namespace blocksci {
         ~AddressIndex();
 
         /** Get InoutPointer objects for all outputs that belong to the given address */
-        ranges::any_view<InoutPointer, ranges::category::forward> getOutputPointers(const RawAddress &address) const;
+        ranges::any_view<InoutPointer, ranges::category::forward> getOutputPointers(ChainId::Enum chainId, const RawAddress &address) const;
         
         ranges::optional<DedupAddress> getNestingScriptHash(const RawAddress &searchAddress) const;
         std::unordered_set<DedupAddress> getPossibleNestedEquivalentUp(const RawAddress &searchAddress) const;
@@ -108,7 +109,7 @@ namespace blocksci {
         /** Compact the underlying RocksDB database */
         void compactDB();
         
-        void rollback(uint32_t txNum);
+        void rollback(ChainId::Enum chainId, uint32_t txNum);
     };
 }
 

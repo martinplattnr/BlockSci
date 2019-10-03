@@ -11,6 +11,7 @@
 
 #include <blocksci/core/bitcoin_uint256.hpp>
 #include <blocksci/core/typedefs.hpp>
+#include <blocksci/core/chain_ids.hpp>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -19,7 +20,6 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <blocksci/core/chain_ids.hpp>
 
 namespace blocksci {
 

@@ -190,6 +190,7 @@ set(CHAIN_SOURCES
   ${BLOCKSCI_SOURCE_PREFIX}/chain/input_pointer.cpp
   ${BLOCKSCI_SOURCE_PREFIX}/chain/output_pointer.cpp
   ${BLOCKSCI_SOURCE_PREFIX}/chain/input.cpp
+  ${BLOCKSCI_SOURCE_PREFIX}/chain/input_range.cpp
   ${BLOCKSCI_SOURCE_PREFIX}/chain/output.cpp
   ${BLOCKSCI_SOURCE_PREFIX}/chain/transaction.cpp
   ${BLOCKSCI_SOURCE_PREFIX}/chain/transaction_range.cpp

@@ -415,8 +415,17 @@ void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse
             std::cout << "Copy parser/ directory" << std::endl;
             std::system(("cp -r " + currentDc->chainConfig.dataDirectory.str() + "/parser " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
 
+            // parser/blockList.dat needs to be removed to ensure a reparse of the node data of the child chain
             std::cout << "Remove parser/blockList.dat" << std::endl;
             std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/blockList.dat").c_str());
+
+            /* parser/addressDB.txt needs to be removed to ensure that all entries in the AddressIndex DB are duplicated
+             * for the chainId of the child chain, that is parsed afterwards.
+             * todo-fork: A better solution would be to handle this directly inAddressDB::processTx, by adding outputs
+             * for every child chain by looping config.dataConfig.childDataConfiguration recursively.
+             */
+            std::cout << "Remove parser/addressDB.txt" << std::endl;
+            std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/addressDB.txt").c_str());
         }
 
         std::cout << "Parse up to height (incl. genesis) " << 0 << std::endl;
@@ -705,6 +714,7 @@ int main(int argc, char * argv[]) {
             break;
         }
 
+        // todo-fork: make fork-aware, eg. update the indices for all chains (also updateHashIndex and updateAddressIndex)
         case mode::updateIndexes: {
             auto config = getBaseConfig(configFilePath);
             lockDataDirectory(config);

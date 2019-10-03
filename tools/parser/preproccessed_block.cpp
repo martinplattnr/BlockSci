@@ -223,6 +223,9 @@ blocksci::RawTransaction RawTransaction::getRawTransaction() const {
 }
 
 blocksci::InoutPointer RawInput::getOutputPointer() const {
+    /* InoutPointer.chainId is not required for the returned InoutPointer, as in all current usages it is used
+     * in a parser state that is not shared between chains.
+     */
     return {utxo.txNum, rawOutputPointer.outputNum};
 }
 

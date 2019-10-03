@@ -52,9 +52,10 @@ namespace blocksci {
             uint16_t outputNum;
             uint32_t maxTxLoaded;
             DataAccess *access = nullptr;
+            ChainId::Enum chainId;
             
             iterator() = default;
-            iterator(const Inout *inouts_, BlockHeight height_, uint32_t txIndex_, uint16_t outputNum_, uint32_t maxTxLoaded_, DataAccess *access_) : inouts(inouts_), height(height_), txIndex(txIndex_), outputNum(outputNum_), maxTxLoaded(maxTxLoaded_), access(access_) {}
+            iterator(const Inout *inouts_, BlockHeight height_, uint32_t txIndex_, uint16_t outputNum_, uint32_t maxTxLoaded_, DataAccess *access_, ChainId::Enum chainId_) : inouts(inouts_), height(height_), txIndex(txIndex_), outputNum(outputNum_), maxTxLoaded(maxTxLoaded_), access(access_), chainId(chainId_) {}
 
             self_type &operator+=(difference_type i) { outputNum += i; return *this; }
             self_type &operator-=(difference_type i) { outputNum -= i; return *this; }
@@ -65,8 +66,8 @@ namespace blocksci {
             self_type operator+(difference_type i) const {  self_type tmp = *this; tmp += i; return tmp; }
             self_type operator-(difference_type i) const { self_type tmp = *this; tmp -= i; return tmp; }
             
-            value_type operator*() const { return {{txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access}; }
-            value_type operator[](difference_type i) const { return {{txIndex, static_cast<uint16_t>(static_cast<int>(outputNum) + i)}, height, inouts[outputNum], maxTxLoaded, *access}; }
+            value_type operator*() const { return {{chainId, txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access}; }
+            value_type operator[](difference_type i) const { return {{chainId, txIndex, static_cast<uint16_t>(static_cast<int>(outputNum) + i)}, height, inouts[outputNum], maxTxLoaded, *access}; }
             
             bool operator==(const self_type& rhs) const { return outputNum == rhs.outputNum; }
             bool operator!=(const self_type& rhs) const { return outputNum != rhs.outputNum; }
@@ -79,11 +80,11 @@ namespace blocksci {
         };
 
         iterator begin() const {
-            return iterator{inouts, height, txIndex, 0, maxTxLoaded, access};
+            return iterator{inouts, height, txIndex, 0, maxTxLoaded, access, getChainId(access)};
         }
 
         iterator end() const {
-            return iterator{nullptr, height, txIndex, maxOutputNum, maxTxLoaded, nullptr};
+            return iterator{nullptr, height, txIndex, maxOutputNum, maxTxLoaded, nullptr, getChainId(access)};
         }
 
         uint16_t size() const {
@@ -91,7 +92,7 @@ namespace blocksci {
         }
 
         Output operator[](uint16_t outputNum) {
-            return {{txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access};
+            return {{getChainId(access), txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access};
         }
     };
     

@@ -13,7 +13,7 @@
 namespace blocksci {
     std::string InputPointer::toString() const {
         std::stringstream ss;
-        ss << "InputPointer(tx_index=" << txNum << ", input_index=" << inoutNum << ")";
+        ss << "InputPointer(chain_id=" << ChainId::getName(chainId) << ", tx_index=" << txNum << ", input_index=" << inoutNum << ")";
         return ss.str();
     }
 } // namespace blocksci

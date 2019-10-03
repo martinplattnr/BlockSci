@@ -15,6 +15,11 @@
 #include <range/v3/range_concepts.hpp>
 
 namespace blocksci {
+    // todo-fork: reconsider (eg. in which file should this function be declared/defined?)
+    // workaround function to retrieve the chainId from DataAccess. this is only possible from a .cpp file,
+    // as the DataAccess class is internal and thus, not usable in public hpp files.
+    ChainId::Enum getChainId(DataAccess* da);
+
     class ChainAccess;
     class DataAccess;
     
@@ -58,6 +63,7 @@ namespace blocksci {
             uint16_t inputNum;
             uint32_t maxTxCount;
             DataAccess *access = nullptr;
+            ChainId::Enum chainId;
 
             self_type &operator+=(difference_type i) { inputNum += i; return *this; }
             self_type &operator-=(difference_type i) { inputNum -= i; return *this; }
@@ -69,10 +75,10 @@ namespace blocksci {
             self_type operator-(difference_type i) const { self_type tmp = *this; tmp -= i; return tmp; }
 
             /** Parameters of Input constructor: InputPointer &pointer_, BlockHeight blockHeight_, Inout &inout_, uint16_t *spentOutputNum_, uint32_t *sequenceNum_, uint32_t maxTxCount_, DataAccess &access_ */
-            value_type operator*() const { return {{txIndex, inputNum}, height, inouts[inputNum], &spentOutputNums[inputNum], &sequenceNumbers[inputNum], maxTxCount, *access}; }
+            value_type operator*() const { return {{chainId, txIndex, inputNum}, height, inouts[inputNum], &spentOutputNums[inputNum], &sequenceNumbers[inputNum], maxTxCount, *access}; }
             value_type operator[](difference_type i) const {
                 auto index = static_cast<uint16_t>(static_cast<int>(inputNum) + i);
-                return {{txIndex, index}, height, inouts[index], &spentOutputNums[inputNum], &sequenceNumbers[index], maxTxCount, *access};
+                return {{chainId, txIndex, index}, height, inouts[index], &spentOutputNums[inputNum], &sequenceNumbers[index], maxTxCount, *access};
             }
 
             bool operator==(const self_type& rhs) const { return inputNum == rhs.inputNum; }
@@ -86,11 +92,11 @@ namespace blocksci {
         };
 
         iterator begin() const {
-            return iterator{inouts, spentOutputNums, sequenceNumbers, height, txIndex, 0, maxTxCount, access};
+            return iterator{inouts, spentOutputNums, sequenceNumbers, height, txIndex, 0, maxTxCount, access, getChainId(access)};
         }
 
         iterator end() const {
-            return iterator{nullptr, nullptr, nullptr, height, txIndex, maxInputNum, maxTxCount, nullptr};
+            return iterator{nullptr, nullptr, nullptr, height, txIndex, maxInputNum, maxTxCount, nullptr, getChainId(access)};
         }
 
         uint16_t size() const {
@@ -98,10 +104,10 @@ namespace blocksci {
         }
 
         Input operator[](uint16_t inputNum) {
-            return {{txIndex, inputNum}, height, inouts[inputNum], &spentOutputNums[inputNum], &sequenceNumbers[inputNum], maxTxCount, *access};
+            return {{getChainId(access), txIndex, inputNum}, height, inouts[inputNum], &spentOutputNums[inputNum], &sequenceNumbers[inputNum], maxTxCount, *access};
         }
     };
-    
+
     inline InputRange::iterator::self_type BLOCKSCI_EXPORT operator+(InputRange::iterator::difference_type i, const InputRange::iterator &it) {
         return it + i;
     }

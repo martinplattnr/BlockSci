@@ -18,7 +18,12 @@
 
 namespace blocksci {
     Output::Output(const OutputPointer &pointer_, DataAccess &access_) :
-    Output(pointer_, -1, access_.getChain().getTx(pointer_.txNum)->getOutput(pointer_.inoutNum), static_cast<uint32_t>(access_.getChain().txCount()), access_) {}
+    Output(pointer_, -1, access_.getChain().getTx(pointer_.txNum)->getOutput(pointer_.inoutNum), static_cast<uint32_t>(access_.getChain().txCount()), access_) {
+        // todo-fork: this check should be done before accessing all data in the initialization list
+        if (pointer.chainId != access->chainId) {
+            throw std::runtime_error("This method currently only supports single-chain access");
+        }
+    }
     
     Transaction Output::transaction() const {
         return {pointer.txNum, blockHeight, *access};
@@ -64,8 +69,8 @@ namespace blocksci {
             for (uint16_t i = 0; i < rawTx->inputCount; i++) {
                 const auto &input = rawTx->getInput(i);
                 auto spentOutNum = spentOutNums[i];
-                if (OutputPointer{input.getLinkedTxNum(), spentOutNum} == pointer) {
-                    return InputPointer{*index, i};
+                if (OutputPointer{access->chainId, input.getLinkedTxNum(), spentOutNum} == pointer) {
+                    return InputPointer{access->chainId, *index, i};
                 }
             }
             throw std::runtime_error("Whoopsie. Something went terribly wrong");

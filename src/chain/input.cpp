@@ -16,6 +16,7 @@
 #include <internal/data_access.hpp>
 
 #include <sstream>
+#include <stdexcept>
 
 namespace blocksci {
     Input::Input(const InputPointer &pointer_, DataAccess &access_) :
@@ -27,7 +28,10 @@ namespace blocksci {
           static_cast<uint32_t>(access_.getChain().txCount()),                          // uint32_t maxTxCount_
           access_                                                                       // DataAccess &access_
           ) {
-
+        // todo-fork: this check should be done before accessing all data in the initialization list
+        if (pointer.chainId != access->chainId) {
+            throw std::runtime_error("This method currently only supports single-chain access");
+        }
     }
     
     Transaction Input::transaction() const {
@@ -63,7 +67,11 @@ namespace blocksci {
         ss << "TxIn(spent_tx_index=" << inout->getLinkedTxNum() << ", address=" << getAddress().toString() <<", value=" << inout->getValue() << ")";
         return ss.str();
     }
-    
+
+    OutputPointer Input::getSpentOutputPointer() const {
+        return {access->chainId, inout->getLinkedTxNum(), *spentOutputNum};
+    }
+
     std::ostream &operator<<(std::ostream &os, const Input &input) {
         return os << input.toString();
     }
