@@ -15,7 +15,7 @@
 
 
 namespace blocksci {
-    // todo: class could be refactored to compile-time lookup (enum -> string)
+    // todo: class could be refactored to compile-time lookup (enum -> string), see dedup_address_info.cpp
     class ChainId {
     public:
         enum Enum : uint8_t // if the type is changed, code must be adapted, eg. AddressIndex::getOutputPointers()

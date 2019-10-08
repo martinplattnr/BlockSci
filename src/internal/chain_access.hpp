@@ -567,6 +567,7 @@ namespace blocksci {
             return preForkLinkedTxNumFile[index];
         }
 
+        // todo: not used, could be removed; if not, pointer.chainId is not considered (but should be?)
         uint32_t getLinkedTxNumFork(const OutputPointer &pointer, uint32_t &defaultValue) {
             if (pointer.txNum > forkTxIndex) {
                 return defaultValue;

@@ -27,7 +27,10 @@ struct ScriptOutput {
     ScriptOutput() = default;
     ScriptOutput(const ScriptOutputData<type> &data_) : data(data_) {}
 
-    /** resolve the given Output to an existing scriptNum, if available */
+    /** resolve the given Output to an existing scriptNum, if available
+     *  the types DedupAddressType::NONSTANDARD, DedupAddressType::NULL_DATA, and DedupAddressType::WITNESS_UNKNOWN
+     *  are always resolved to a new (fresh) scriptNum.
+     */
     uint32_t resolve(AddressState &state) {
         auto addressInfo = state.findAddress(data);
         std::tie(scriptNum, isNew) = state.resolveAddress(addressInfo);

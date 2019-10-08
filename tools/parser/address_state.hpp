@@ -46,7 +46,6 @@ constexpr int startingCount<blocksci::DedupAddressType::SCRIPTHASH> = 100'000'00
 template<>
 constexpr int startingCount<blocksci::DedupAddressType::MULTISIG> = 100'000'000;
 
-// todo-fork: maybe the AddressState needs to be shared between related chains
 class AddressState {
     static constexpr auto AddressFalsePositiveRate = .05;
     
@@ -114,7 +113,8 @@ public:
     AddressState(AddressState &&) = delete;
     AddressState &operator=(AddressState &&) = delete;
     ~AddressState();
-    
+
+    // used if DedupAddressInfo<type>::equived = false (DedupAddressType::NONSTANDARD, DedupAddressType::NULL_DATA, DedupAddressType::WITNESS_UNKNOWN)
     template<blocksci::AddressType::Enum type, std::enable_if_t<!blocksci::DedupAddressInfo<dedupType(type)>::equived, int> = 0>
     NonDudupAddressInfo<type> findAddress(const ScriptOutputData<type> &) {
         uint32_t scriptNum = getNewAddressIndex(dedupType(type));
@@ -158,6 +158,7 @@ public:
     }
     
     // Bool is true if address is new
+    // called by ScriptOutput.resolve(): first calls findAddress, then calls resolveAddress with the result of findAddress
     template<blocksci::AddressType::Enum type>
     std::pair<uint32_t, bool> resolveAddress(const RawAddressInfo<type> &addressInfo) {
         bool existingAddress = false;
