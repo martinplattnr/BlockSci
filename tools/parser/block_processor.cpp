@@ -428,7 +428,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
         for (auto &scriptOutput : tx.scriptOutputs) {
             if (scriptOutput.isNew()) {
                 // serialize output scripts; for multisig scripts, recursively serializes the cointained multisig addresses
-                addressWriter.serializeNew(scriptOutput, tx.txNum, true);
+                addressWriter.serializeNewOutput(scriptOutput, tx.txNum, true);
             }
         }
         
@@ -439,7 +439,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
              * - ScriptInputData<AddressType::Enum::WITNESS_SCRIPTHASH>
              * - ScriptInputData<AddressType::Enum::SCRIPTHASH>
              */
-            addressWriter.serializeWrapped(scriptInput, tx.txNum, input.utxo.txNum);
+            addressWriter.serializeWrappedInput(scriptInput, tx.txNum, input.utxo.txNum);
         }
     }, [&](RawTransaction &tx) {
         for (auto &scriptOutput : tx.scriptOutputs) {
@@ -447,7 +447,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
                 /* mark the existing (serialized) address as seen for the given address type
                  * may add additional information, eg. the pubkey to an address that so far only appeared as P2PKH,
                  * and now a P2PK output (which contains the pubkey) comes along */
-                addressWriter.serializeExisting(scriptOutput, true);
+                addressWriter.serializeExistingOutput(scriptOutput, true);
             }
         }
         
@@ -457,7 +457,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
             /* calls serialize() in address_writer.hpp
              * may add additional information, eg. the pubkey when a P2PKH address is spent
              */
-            addressWriter.serialize(scriptInput, tx.txNum, input.utxo.txNum);
+            addressWriter.serializeInput(scriptInput, tx.txNum, input.utxo.txNum);
         }
     }};
 }
