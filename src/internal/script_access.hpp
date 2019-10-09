@@ -33,6 +33,11 @@ namespace blocksci {
         struct ScriptDataBaseFunctor {
             static const ScriptDataBase * f(uint32_t scriptNum, const ScriptAccess &access);
         };
+
+        template<DedupAddressType::Enum type>
+        struct ScriptHeaderFunctor {
+            static const ScriptHeader* f(uint32_t scriptNum, const ScriptAccess &access);
+        };
     } // namespace internal
     
     class ScriptAccess;
@@ -53,10 +58,15 @@ namespace blocksci {
     template<typename T>
     using ScriptFileType_t = typename ScriptFileType<T>::type;
     
-    
     template<DedupAddressType::Enum type>
     using ScriptFile = ScriptFileType_t<typename ScriptInfo<type>::storage>;
 
+
+
+    template<DedupAddressType::Enum type>
+    struct ScriptHeaderFile : public FixedSizeFileMapper<ScriptHeader> {
+        using FixedSizeFileMapper<ScriptHeader>::FixedSizeFileMapper;
+    };
 
     /** Provides access to script data of all address types
      *
@@ -69,13 +79,29 @@ namespace blocksci {
     private:
         using ScriptFilesTuple = to_dedup_address_tuple_t<ScriptFile>;
         ScriptFilesTuple scriptFiles;
-        
+
+        using ScriptHeaderFilesTuple = to_dedup_address_tuple_t<ScriptHeaderFile>;
+        ScriptHeaderFilesTuple scriptHeaderFiles;
+
+
+        template<DedupAddressType::Enum type>
+        friend struct internal::ScriptHeaderFunctor;
+
+        template<DedupAddressType::Enum type>
+        const ScriptHeader* getScriptHeaderImpl(uint32_t scriptNum) const {
+            auto &file = std::get<ScriptHeaderFile<type>>(scriptHeaderFiles);
+            return file[scriptNum - 1];
+        }
+
     public:
-        explicit ScriptAccess(const filesystem::path &baseDirectory) :
+        explicit ScriptAccess(const filesystem::path &rootDirectory, const filesystem::path &localDirectory) :
         scriptFiles(blocksci::apply(DedupAddressType::all(), [&] (auto tag) {
-            return ScriptFile<tag.value>{baseDirectory/std::string{dedupAddressName(tag)}};
+            return ScriptFile<tag.value>{rootDirectory/std::string{dedupAddressName(tag)}};
+        })),
+        scriptHeaderFiles(blocksci::apply(DedupAddressType::all(), [&] (auto tag) {
+            return ScriptHeaderFile<tag.value>{localDirectory/std::string{dedupAddressName(tag) + "_header"}};
         })) {}
-        
+
         template <DedupAddressType::Enum type>
         ScriptFile<type> &getFile() {
             return *std::get<ScriptFile<type>>(scriptFiles);
@@ -85,13 +111,19 @@ namespace blocksci {
         const ScriptFile<type> &getFile() const {
             return std::get<ScriptFile<type>>(scriptFiles);
         }
+
+        const ScriptHeader* getScriptHeader(uint32_t addressNum, DedupAddressType::Enum type) const {
+            static auto table = blocksci::make_dynamic_table<DedupAddressType, internal::ScriptHeaderFunctor>();
+            auto index = static_cast<size_t>(type);
+            return table.at(index)(addressNum, *this);
+        }
         
         template <DedupAddressType::Enum type>
         auto getScriptData(uint32_t addressNum) const {
             return getFile<type>()[addressNum - 1];
         }
         
-        const ScriptDataBase *getScriptHeader(uint32_t addressNum, DedupAddressType::Enum type) const {
+        const ScriptDataBase *getScriptData(uint32_t addressNum, DedupAddressType::Enum type) const {
             static auto &scriptDataBaseTable = *[]() {
                 auto table = make_dynamic_table<DedupAddressType, internal::ScriptDataBaseFunctor>();
                 return new decltype(table){table};
@@ -134,6 +166,11 @@ namespace blocksci {
         const ScriptDataBase * ScriptDataBaseFunctor<type>::f(uint32_t scriptNum, const ScriptAccess &access) {
             auto &file = access.getFile<type>();
             return file.getDataAtIndex(scriptNum - 1);
+        }
+
+        template<DedupAddressType::Enum type>
+        const ScriptHeader* ScriptHeaderFunctor<type>::f(uint32_t scriptNum, const ScriptAccess &access) {
+            return access.getScriptHeaderImpl<type>(scriptNum);
         }
     } // namespace internal
     

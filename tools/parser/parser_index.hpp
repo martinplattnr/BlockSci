@@ -86,7 +86,7 @@ struct ParserScriptUpdater {
 template <typename T>
 void ParserIndex<T>::runUpdate(const blocksci::State &state) {
     blocksci::ChainAccess chain{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg};
-    blocksci::ScriptAccess scripts{config.dataConfig.scriptsDirectory()};
+    blocksci::ScriptAccess scripts{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()};
     
     if (latestState.txCount < state.txCount) {
         auto newCount = state.txCount - latestState.txCount;

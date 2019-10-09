@@ -20,7 +20,8 @@ namespace blocksci {
             return reinterpret_cast<const ScriptHashData *>(ScriptBase::getData());
         }
     protected:
-        ScriptHashBase(uint32_t scriptNum_, AddressType::Enum type_, const ScriptHashData *rawData_, DataAccess &access_) : ScriptBase(scriptNum_, type_, access_, rawData_) {}
+        ScriptHashBase(uint32_t scriptNum_, AddressType::Enum type_, const ScriptHeader *scriptHeader_, const ScriptHashData *scriptData_, DataAccess &access_)
+            : ScriptBase(scriptNum_, type_, access_, scriptHeader_, scriptData_) {}
         
     public:
         void visitPointers(const std::function<void(const Address &)> &visitFunc) const {
@@ -53,7 +54,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::SCRIPTHASH;
         
-        ScriptAddress(uint32_t addressNum_, const ScriptHashData *data_, DataAccess &access_) : ScriptHashBase(addressNum_, addressType, data_, access_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const ScriptHashData *scriptData_, DataAccess &access_)
+            : ScriptHashBase(addressNum_, addressType, scriptHeader_, scriptData_, access_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         uint160 getAddressHash() const {
@@ -72,7 +74,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::WITNESS_SCRIPTHASH;
         
-        ScriptAddress(uint32_t addressNum_, const ScriptHashData *data_, DataAccess &access_) : ScriptHashBase(addressNum_, addressType, data_, access_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const ScriptHashData *scriptData_, DataAccess &access_)
+            : ScriptHashBase(addressNum_, addressType, scriptHeader_, scriptData_, access_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         uint256 getAddressHash() const {

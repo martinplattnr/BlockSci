@@ -62,8 +62,8 @@ namespace blocksci {
         }
         
     };
-    
-    struct BLOCKSCI_EXPORT ScriptDataBase {
+
+    struct BLOCKSCI_EXPORT ScriptHeader {
         /** Transaction number where this script has first occurred in the blockchain */
         uint32_t txFirstSeen;
 
@@ -71,35 +71,30 @@ namespace blocksci {
         uint32_t txFirstSpent;
 
         uint32_t typesSeen;
-        
-        explicit ScriptDataBase(uint32_t txNum) : txFirstSeen(txNum), txFirstSpent(std::numeric_limits<uint32_t>::max()), typesSeen(0) {}
-        
-        void visitPointers(const std::function<void(const RawAddress &)> &) const {}
 
-        // todo-fork: get this from the AddressIndex by chainId ?; otherwise it's unclear which chain it was seen on
-        uint32_t getFirstTxIndex() const {
-            return txFirstSeen;
-        }
-        
-        bool hasBeenSpent() const {
-            return txFirstSpent != std::numeric_limits<uint32_t>::max();
-        }
-        
+        // used for scripts that have not been seen yet (eg. seen on root chain, but not on the fork)
+        explicit ScriptHeader() : txFirstSeen(std::numeric_limits<uint32_t>::max()), txFirstSpent(std::numeric_limits<uint32_t>::max()), typesSeen(0) {}
+
+        explicit ScriptHeader(uint32_t txNum) : txFirstSeen(txNum), txFirstSpent(std::numeric_limits<uint32_t>::max()), typesSeen(0) {}
+
         void saw(blocksci::AddressType::Enum type, bool isTopLevel) {
             typesSeen |= (1u << static_cast<uint32_t>(type) * 2);
             if (isTopLevel) {
                 typesSeen |= (1u << (static_cast<uint32_t>(type) * 2 + 1));
             }
-            
         }
-        
+
         bool seenTopLevel(blocksci::AddressType::Enum type) const {
             return typesSeen & (1u << (static_cast<uint32_t>(type) * 2 + 1));
         }
-        
+
         bool seen(blocksci::AddressType::Enum type) const {
             return typesSeen & (1u << static_cast<uint32_t>(type) * 2);
         }
+    };
+
+    struct BLOCKSCI_EXPORT ScriptDataBase {
+        void visitPointers(const std::function<void(const RawAddress &)> &) const {}
     };
     
     struct BLOCKSCI_EXPORT PubkeyData : public ScriptDataBase {
@@ -109,22 +104,17 @@ namespace blocksci {
         };
         bool hasPubkey;
         
-        PubkeyData(uint32_t txNum, const RawPubkey &pubkey_) : ScriptDataBase(txNum), pubkey(pubkey_), hasPubkey(true) {
+        PubkeyData(const RawPubkey &pubkey_) : pubkey(pubkey_), hasPubkey(true) {
             // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
             pubkey.fill(0);
             auto itBegin = pubkey_.begin();
             auto itEnd = itBegin + blocksci::CPubKey::GetLen(pubkey_[0]);
             std::copy(itBegin, itEnd, pubkey.begin());
-
-            // set padding to zero
-            memset(reinterpret_cast<char*>(this+1) -2, 0, 2);
         }
-        PubkeyData(uint32_t txNum, const uint160 &address_) : ScriptDataBase(txNum), hasPubkey(false) {
+        PubkeyData(const uint160 &address_) : hasPubkey(false) {
             // todo: this was set to avoid non-deterministic data in the parser output, can (should?) be removed again
             pubkey.fill(0);
             address = address_;
-            // set padding to zero (last 2 bytes)
-            memset(reinterpret_cast<char*>(this+1) -2, 0, 2);
         }
         
         size_t size() {
@@ -132,7 +122,7 @@ namespace blocksci {
         }
     };
     // check the size of PubkeyData as the padding 0-initialization has to be adapted if the size changes
-    static_assert (sizeof(PubkeyData) == 80, "PubkeyData does not have the expected size.");
+    static_assert (sizeof(PubkeyData) == 66, "PubkeyData does not have the expected size.");
     
     struct BLOCKSCI_EXPORT ScriptHashData : public ScriptDataBase {
         union {
@@ -142,7 +132,7 @@ namespace blocksci {
         RawAddress wrappedAddress;
         bool isSegwit;
 
-        ScriptHashData(uint32_t txNum, uint160 hash160_, const RawAddress &wrappedAddress_) : ScriptDataBase(txNum), wrappedAddress(wrappedAddress_), isSegwit(false) {
+        ScriptHashData(uint160 hash160_, const RawAddress &wrappedAddress_) : wrappedAddress(wrappedAddress_), isSegwit(false) {
             // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
             hash256.SetNull();
             hash160 = hash160_;
@@ -150,7 +140,7 @@ namespace blocksci {
             memset(reinterpret_cast<char*>(this+1) -3, 0, 3);
         }
         
-        ScriptHashData(uint32_t txNum, uint256 hash256_, const RawAddress &wrappedAddress_) : ScriptDataBase(txNum), hash256(hash256_), wrappedAddress(wrappedAddress_), isSegwit(true) {}
+        ScriptHashData(uint256 hash256_, const RawAddress &wrappedAddress_) : hash256(hash256_), wrappedAddress(wrappedAddress_), isSegwit(true) {}
         
         size_t size() {
             return sizeof(ScriptHashData);
@@ -167,7 +157,7 @@ namespace blocksci {
         }
     };
     // check the size of ScriptHashData as the padding 0-initialization has to be adapted if the size changes
-    static_assert (sizeof(ScriptHashData) == 56, "ScriptHashData does not have the expected size.");
+    static_assert (sizeof(ScriptHashData) == 44, "ScriptHashData does not have the expected size.");
     
     struct BLOCKSCI_EXPORT MultisigData : public ScriptDataBase {
         uint8_t m;
@@ -183,7 +173,7 @@ namespace blocksci {
             return sizeof(MultisigData) + addresses.extraSize();
         }
         
-        MultisigData(uint32_t txNum, uint8_t m_, uint8_t n_, uint16_t addressCount) : ScriptDataBase(txNum), m(m_), n(n_), addresses(addressCount) {}
+        MultisigData(uint8_t m_, uint8_t n_, uint16_t addressCount) : m(m_), n(n_), addresses(addressCount) {}
         
         void visitPointers(const std::function<void(const RawAddress &)> &visitFunc) const {
             for (auto scriptNum : addresses) {
@@ -199,7 +189,7 @@ namespace blocksci {
             return sizeof(NonstandardScriptData) + scriptData.extraSize();
         }
         
-        NonstandardScriptData(uint32_t txNum, uint32_t scriptLength) : ScriptDataBase(txNum), scriptData(scriptLength) {}
+        NonstandardScriptData(uint32_t scriptLength) : scriptData(scriptLength) {}
     };
     
     struct BLOCKSCI_EXPORT NonstandardSpendScriptData {
@@ -223,7 +213,7 @@ namespace blocksci {
             return sizeof(RawData) + rawData.extraSize();
         }
         
-        RawData(uint32_t txNum, const std::vector<unsigned char> &fullData) : ScriptDataBase(txNum), rawData(static_cast<uint32_t>(fullData.size())) {}
+        RawData(const std::vector<unsigned char> &fullData) : rawData(static_cast<uint32_t>(fullData.size())) {}
     };
     
     struct BLOCKSCI_EXPORT WitnessUnknownScriptData : public ScriptDataBase {
@@ -234,7 +224,7 @@ namespace blocksci {
             return sizeof(WitnessUnknownScriptData) + scriptData.extraSize();
         }
         
-        WitnessUnknownScriptData(uint32_t txNum, uint8_t witnessVersion_, uint32_t scriptLength) : ScriptDataBase(txNum), witnessVersion(witnessVersion_), scriptData(scriptLength) {}
+        WitnessUnknownScriptData(uint8_t witnessVersion_, uint32_t scriptLength) : witnessVersion(witnessVersion_), scriptData(scriptLength) {}
     };
     
     struct BLOCKSCI_EXPORT WitnessUnknownSpendScriptData {

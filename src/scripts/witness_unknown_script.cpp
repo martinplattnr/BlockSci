@@ -18,7 +18,13 @@
 
 namespace blocksci {
 
-    ScriptAddress<AddressType::WITNESS_UNKNOWN>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::WITNESS_UNKNOWN>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     uint8_t ScriptAddress<AddressType::WITNESS_UNKNOWN>::witnessVersion() const {
         return getData()->witnessVersion;

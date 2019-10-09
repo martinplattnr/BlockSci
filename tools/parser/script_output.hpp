@@ -73,7 +73,8 @@ struct ScriptOutputData<blocksci::AddressType::Enum::PUBKEY> : public ScriptOutp
     
     blocksci::uint160 getHash() const;
     
-    blocksci::PubkeyData getData(uint32_t txNum, bool topLevel) const;
+    blocksci::PubkeyData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -84,8 +85,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::PUBKEYHASH> : public Script
     ScriptOutputData(blocksci::uint160 &pubkeyHash) : hash{pubkeyHash} {}
     
     blocksci::uint160 getHash() const;
-    
-    blocksci::PubkeyData getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::PubkeyData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -99,8 +101,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::MULTISIG_PUBKEY> : public S
     ScriptOutputData() = default;
     
     blocksci::uint160 getHash() const;
-    
-    blocksci::PubkeyData getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::PubkeyData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -111,8 +114,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::WITNESS_PUBKEYHASH> : publi
     ScriptOutputData(blocksci::uint160 &&pubkeyHash) : hash{pubkeyHash} {}
     
     blocksci::uint160 getHash() const;
-    
-    blocksci::PubkeyData getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::PubkeyData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -123,7 +127,8 @@ struct ScriptOutputData<blocksci::AddressType::Enum::SCRIPTHASH> : public Script
     
     blocksci::uint160 getHash() const;
     
-    blocksci::ScriptHashData getData(uint32_t txNum, bool topLevel) const;
+    blocksci::ScriptHashData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -135,8 +140,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::WITNESS_SCRIPTHASH> : publi
     ScriptOutputData(blocksci::uint256 hash_) : hash(hash_) {}
     
     blocksci::uint160 getHash() const;
-    
-    blocksci::ScriptHashData getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::ScriptHashData getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -171,8 +177,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::MULTISIG> : public ScriptOu
             func(pubkey);
         }
     }
-    
-    blocksci::ArbitraryLengthData<blocksci::MultisigData> getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::ArbitraryLengthData<blocksci::MultisigData> getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -181,8 +188,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::NONSTANDARD> : public Scrip
     
     ScriptOutputData() {}
     ScriptOutputData(const blocksci::CScriptView &script);
-    
-    blocksci::ArbitraryLengthData<blocksci::NonstandardScriptData> getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::ArbitraryLengthData<blocksci::NonstandardScriptData> getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -191,7 +199,8 @@ struct ScriptOutputData<blocksci::AddressType::Enum::NULL_DATA> : public ScriptO
     
     ScriptOutputData(const blocksci::CScriptView &script);
     
-    blocksci::ArbitraryLengthData<blocksci::RawData> getData(uint32_t txNum, bool topLevel) const;
+    blocksci::ArbitraryLengthData<blocksci::RawData> getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 template <>
@@ -201,8 +210,9 @@ struct ScriptOutputData<blocksci::AddressType::Enum::WITNESS_UNKNOWN> : public S
     
     ScriptOutputData() {}
     ScriptOutputData(uint8_t witnessVersion, const ranges::iterator_range<const unsigned char *> &witnessData);
-    
-    blocksci::ArbitraryLengthData<blocksci::WitnessUnknownScriptData> getData(uint32_t txNum, bool topLevel) const;
+
+    blocksci::ArbitraryLengthData<blocksci::WitnessUnknownScriptData> getData() const;
+    blocksci::ScriptHeader getHeader(uint32_t txNum, bool topLevel) const;
 };
 
 using ScriptOutputType = blocksci::to_variadic_t<blocksci::to_address_tuple_t<ScriptOutput>, mpark::variant>;

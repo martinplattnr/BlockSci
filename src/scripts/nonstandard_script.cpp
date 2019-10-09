@@ -16,7 +16,13 @@
 
 namespace blocksci {
 
-    ScriptAddress<AddressType::NONSTANDARD>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::NONSTANDARD>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     ranges::optional<CScriptView> ScriptAddress<AddressType::NONSTANDARD>::getInputScript() const {
         if (rawInputData != nullptr) {

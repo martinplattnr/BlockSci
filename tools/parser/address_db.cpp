@@ -37,9 +37,10 @@ void AddressDB::processTx(const blocksci::RawTransaction *tx, uint32_t txNum, co
     std::function<bool(const RawAddress &)> visitFunc = [&](const RawAddress &a) {
         if (dedupType(a.type) == DedupAddressType::SCRIPTHASH && addedAddresses.find(a) == addedAddresses.end()) {
             addedAddresses.insert(a);
-            auto scriptHash = scripts.getScriptData<DedupAddressType::SCRIPTHASH>(a.scriptNum);
-            if (scriptHash->txFirstSeen == txNum) {
-                addAddressNested(scriptHash->wrappedAddress, DedupAddress{a.scriptNum, DedupAddressType::SCRIPTHASH});
+            auto scriptHashData = scripts.getScriptData<DedupAddressType::SCRIPTHASH>(a.scriptNum);
+            auto scriptHashHeader = scripts.getScriptHeader(a.scriptNum, dedupType(a.type));
+            if (scriptHashHeader->txFirstSeen == txNum) {
+                addAddressNested(scriptHashData->wrappedAddress, DedupAddress{a.scriptNum, DedupAddressType::SCRIPTHASH});
                 return true;
             } else {
                 return false;

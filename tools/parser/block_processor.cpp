@@ -424,7 +424,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeTransactionStep::s
 /** 8. step of the processing pipeline
  * Save address data into files for the analysis library */
 std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::steps() {
-    return {[&](RawTransaction &tx) {        
+    return {[&](RawTransaction &tx) {
         for (auto &scriptOutput : tx.scriptOutputs) {
             if (scriptOutput.isNew()) {
                 // serialize output scripts; for multisig scripts, recursively serializes the cointained multisig addresses

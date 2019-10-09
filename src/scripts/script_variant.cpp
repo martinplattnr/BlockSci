@@ -21,7 +21,12 @@ namespace {
     struct ScriptCreateFunctor {
         static blocksci::ScriptVariant f(uint32_t scriptNum, blocksci::DataAccess &access) {
             // todo-fork: add chainId
-            return blocksci::ScriptAddress<type>(scriptNum, access.getScripts().getScriptData<dedupType(type)>(scriptNum), access);
+            return blocksci::ScriptAddress<type>(
+                scriptNum,
+                access.getScripts().getScriptHeader(scriptNum, dedupType(type)),
+                access.getScripts().getScriptData<dedupType(type)>(scriptNum),
+                access
+            );
         }
     };
     
@@ -32,8 +37,8 @@ namespace blocksci {
 
     AnyScript::AnyScript(const Address &address) : wrapped(scriptCreator.at(static_cast<size_t>(address.type))(address.scriptNum, address.getAccess())) {}
     AnyScript::AnyScript(uint32_t addressNum, AddressType::Enum type, DataAccess &access) : wrapped(scriptCreator.at(static_cast<size_t>(type))(addressNum, access)) {}
-    
-	Transaction AnyScript::getFirstTransaction() const {
+
+    ranges::optional<Transaction> AnyScript::getFirstTransaction() const {
 		return mpark::visit([&](auto &scriptAddress) { return scriptAddress.getFirstTransaction(); }, wrapped);
 	}
 

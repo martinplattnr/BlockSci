@@ -15,11 +15,23 @@
 
 namespace blocksci {
     
-    ScriptBase::ScriptBase(const Address &address) : ScriptBase(address.scriptNum, address.type, address.getAccess(), address.getAccess().scripts->getScriptHeader(address.scriptNum, dedupType(address.type))) {}
-    
-    Transaction ScriptBase::getFirstTransaction() const {
+    ScriptBase::ScriptBase(const Address &address)
+        : ScriptBase(
+            address.scriptNum,
+            address.type,
+            address.getAccess(),
+            address.getAccess().scripts->getScriptHeader(address.scriptNum, dedupType(address.type)),
+            address.getAccess().scripts->getScriptData(address.scriptNum, dedupType(address.type))
+        ) {}
+
+    ranges::optional<Transaction> ScriptBase::getFirstTransaction() const {
         auto txNum = getFirstTxIndex();
-        return Transaction(txNum, getAccess().getChain().getBlockHeight(txNum), getAccess());
+        if (txNum) {
+            return Transaction(*txNum, getAccess().getChain().getBlockHeight(*txNum), getAccess());
+        }
+        else {
+            return ranges::nullopt;
+        }
     }
     
     ranges::optional<Transaction> ScriptBase::getTransactionRevealed() const {

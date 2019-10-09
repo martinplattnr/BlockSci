@@ -16,6 +16,7 @@ namespace blocksci {
     struct InoutPointer;
     
     struct ScriptDataBase;
+    struct ScriptHeader;
     struct PubkeyData;
     struct MultisigData;
     struct ScriptHashData;

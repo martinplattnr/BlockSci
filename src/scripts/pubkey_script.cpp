@@ -18,7 +18,13 @@
 
 namespace blocksci {
     
-    ScriptAddress<AddressType::PUBKEY>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::PUBKEY>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string ScriptAddress<AddressType::PUBKEY>::addressString() const {
         return CBitcoinAddress(getPubkeyHash(), AddressType::Enum::PUBKEYHASH, getAccess().config.chainConfig).ToString();
@@ -30,7 +36,13 @@ namespace blocksci {
         return ss.str();
     }
     
-    ScriptAddress<AddressType::PUBKEYHASH>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::PUBKEYHASH>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string ScriptAddress<AddressType::PUBKEYHASH>::addressString() const {
         return CBitcoinAddress(getPubkeyHash(), AddressType::Enum::PUBKEYHASH, getAccess().config.chainConfig).ToString();
@@ -42,7 +54,13 @@ namespace blocksci {
         return ss.str();
     }
     
-    ScriptAddress<AddressType::WITNESS_PUBKEYHASH>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::WITNESS_PUBKEYHASH>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string ScriptAddress<AddressType::WITNESS_PUBKEYHASH>::addressString() const {
         std::vector<uint8_t> witprog;

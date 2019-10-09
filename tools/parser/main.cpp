@@ -51,14 +51,14 @@ using json = nlohmann::json;
 blocksci::State rollbackState(const ParserConfigurationBase &config, blocksci::BlockHeight firstDeletedBlock, uint32_t firstDeletedTxNum) {
     blocksci::State state{
         blocksci::ChainAccess{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg},
-        blocksci::ScriptAccess{config.dataConfig.scriptsDirectory()}
+        blocksci::ScriptAccess{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()}
     };
     state.blockCount = static_cast<uint32_t>(static_cast<int>(firstDeletedBlock));
     state.txCount = firstDeletedTxNum;
     
     blocksci::IndexedFileMapper<mio::access_mode::write, blocksci::RawTransaction> txFile{blocksci::ChainAccess::txFilePath(config.dataConfig.chainDirectory())};
     blocksci::FixedSizeFileMapper<blocksci::uint256, mio::access_mode::write> txHashesFile{blocksci::ChainAccess::txHashesFilePath(config.dataConfig.chainDirectory())};
-    blocksci::ScriptAccess scriptsAccess{config.dataConfig.scriptsDirectory()};
+    blocksci::ScriptAccess scriptsAccess{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()};
     
     UTXOState utxoState;
     UTXOAddressState utxoAddressState;
@@ -318,7 +318,7 @@ std::vector<blocksci::RawBlock> updateChain(const ParserConfiguration<ParserTag>
 
 void updateHashDB(const ParserConfigurationBase &config, HashIndexCreator &db) {
     blocksci::ChainAccess chain{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg};
-    blocksci::ScriptAccess scripts{config.dataConfig.scriptsDirectory()};
+    blocksci::ScriptAccess scripts{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()};
     
     blocksci::State updateState{chain, scripts};
     std::cout << "Updating hash index\n";
@@ -328,10 +328,10 @@ void updateHashDB(const ParserConfigurationBase &config, HashIndexCreator &db) {
 
 void updateAddressDB(const ParserConfigurationBase &config) {
     blocksci::ChainAccess chain{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg};
-    blocksci::ScriptAccess scripts{config.dataConfig.scriptsDirectory()};
+    blocksci::ScriptAccess scripts{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()};
     
     blocksci::State updateState{chain, scripts};
-    AddressDB db(config, config.dataConfig.addressDBFilePath());
+    AddressDB db(config, config.dataConfig.rootAddressDBFilePath());
     
     std::cout << "Updating address index\n";
     
@@ -357,7 +357,7 @@ void updateChain(const filesystem::path &configFilePath, bool fullParse, blocksc
     blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
     
     ParserConfigurationBase config{dataConfig};
-    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath()); // todo-fork: should be the HashIndex of the root chain
+    HashIndexCreator hashDb(config, config.dataConfig.rootHashIndexFilePath());
     
     auto parserConf = jsonConf.at("parser");
 
@@ -407,10 +407,15 @@ void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse
             // has child chain
 
             std::cout << "Parse up to height (incl. genesis) " << currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1 << std::endl;
-            updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
+            updateChain(currentDc->configPath, fullParse, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
 
+            // todo-fork: replace copy method with something more reliable
             std::cout << "Copy chain/ directory" << std::endl;
             std::system(("cp -r " + currentDc->chainDirectory().str() + " " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
+
+            std::cout << "Copy scripts/*header* files" << std::endl;
+            std::cout << "cp -r " + currentDc->scriptsDirectory().str() + "/*header* " + currentDc->childDataConfiguration->scriptsDirectory().str() << std::endl;
+            std::system(("cp -r " + currentDc->scriptsDirectory().str() + "/*header* " + currentDc->childDataConfiguration->scriptsDirectory().str()).c_str());
 
             std::cout << "Copy parser/ directory" << std::endl;
             std::system(("cp -r " + currentDc->chainConfig.dataDirectory.str() + "/parser " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
@@ -429,7 +434,23 @@ void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse
         }
 
         std::cout << "Parse up to height (incl. genesis) " << 0 << std::endl;
-        updateChain(currentDc->configPath, true, 0); // todo-fork: use maxBlockNum from parser config
+        updateChain(currentDc->configPath, fullParse, 0); // todo-fork: use maxBlockNum from parser config
+
+        currentDc = currentDc->childDataConfiguration.get();
+
+        if (currentDc != nullptr) {
+            ParserConfigurationBase config{*currentDc};
+            AddressWriter addressWriter{config};
+            addressWriter.fillScriptHeaderFiles();
+        }
+    }
+
+    // call AddressWriter.fillScriptHeaderFiles() for all chains again to fill script header files
+    currentDc = &dataConfig.rootDataConfiguration();
+    while (currentDc != nullptr) {
+        ParserConfigurationBase config{*currentDc};
+        AddressWriter addressWriter{config};
+        addressWriter.fillScriptHeaderFiles();
 
         currentDc = currentDc->childDataConfiguration.get();
     }
@@ -447,7 +468,7 @@ void updateChain(const filesystem::path &configFilePath, bool fullParse) {
     blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
 
     ParserConfigurationBase config{dataConfig};
-    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath()); // todo-fork: should be the HashIndex of the root chain
+    HashIndexCreator hashDb(config, config.dataConfig.rootHashIndexFilePath());
 
     auto parserConf = jsonConf.at("parser");
     // parser.maxBlockNum is a block count excl. the genesis block
@@ -720,7 +741,7 @@ int main(int argc, char * argv[]) {
             lockDataDirectory(config);
             updateAddressDB(config);
             {
-                HashIndexCreator db(config, config.dataConfig.hashIndexFilePath());
+                HashIndexCreator db(config, config.dataConfig.rootHashIndexFilePath());
                 updateHashDB(config, db);
             }
             unlockDataDirectory(config);
@@ -730,7 +751,7 @@ int main(int argc, char * argv[]) {
         case mode::updateHashIndex: {
             auto config = getBaseConfig(configFilePath);
             lockDataDirectory(config);
-            HashIndexCreator db(config, config.dataConfig.hashIndexFilePath());
+            HashIndexCreator db(config, config.dataConfig.rootHashIndexFilePath());
             updateHashDB(config, db);
             unlockDataDirectory(config);
             break;
@@ -748,11 +769,11 @@ int main(int argc, char * argv[]) {
             auto config = getBaseConfig(configFilePath);
             lockDataDirectory(config);
             {
-                AddressDB db(config, config.dataConfig.addressDBFilePath());
+                AddressDB db(config, config.dataConfig.rootAddressDBFilePath());
                 db.compact();
             }
             {
-                HashIndexCreator db(config, config.dataConfig.hashIndexFilePath());
+                HashIndexCreator db(config, config.dataConfig.rootHashIndexFilePath());
                 db.compact();
             }
             unlockDataDirectory(config);

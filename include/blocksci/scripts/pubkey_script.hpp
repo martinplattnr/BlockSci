@@ -20,7 +20,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::PUBKEY;
         
-        ScriptAddress(uint32_t addressNum_, const PubkeyData *data_, DataAccess &access_) : PubkeyAddressBase(addressNum_, addressType, data_, access_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const PubkeyData *scriptData_, DataAccess &access_)
+            : PubkeyAddressBase(addressNum_, addressType, scriptHeader_, scriptData_, access_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         std::string addressString() const;
@@ -37,7 +38,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::PUBKEYHASH;
         
-        ScriptAddress(uint32_t addressNum_, const PubkeyData *data_, DataAccess &access_) : PubkeyAddressBase(addressNum_, addressType, data_, access_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const PubkeyData *scriptData_, DataAccess &access_)
+            : PubkeyAddressBase(addressNum_, addressType, scriptHeader_, scriptData_, access_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         std::string addressString() const;
@@ -54,7 +56,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::WITNESS_PUBKEYHASH;
         
-        ScriptAddress(uint32_t addressNum_, const PubkeyData *data_, DataAccess &access_) : PubkeyAddressBase(addressNum_, addressType, data_, access_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const PubkeyData *scriptData_, DataAccess &access_)
+            : PubkeyAddressBase(addressNum_, addressType, scriptHeader_, scriptData_, access_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         std::string addressString() const;

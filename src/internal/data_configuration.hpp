@@ -64,8 +64,12 @@ namespace blocksci {
             }
             return *current;
         }
-        
+
         filesystem::path scriptsDirectory() const {
+            return chainConfig.dataDirectory/"scripts";
+        }
+
+        filesystem::path rootScriptsDirectory() const {
             return this->rootDataConfiguration().chainConfig.dataDirectory/"scripts";
         }
         
@@ -77,12 +81,11 @@ namespace blocksci {
             return chainConfig.dataDirectory/"mempool";
         }
         
-        filesystem::path addressDBFilePath() const {
+        filesystem::path rootAddressDBFilePath() const {
             return this->rootDataConfiguration().chainConfig.dataDirectory/"addressesDb";
         }
         
-        filesystem::path hashIndexFilePath() const {
-            // return path of root chain, if available
+        filesystem::path rootHashIndexFilePath() const {
             return this->rootDataConfiguration().chainConfig.dataDirectory/"hashIndex";
         }
         

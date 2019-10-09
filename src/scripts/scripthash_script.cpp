@@ -41,7 +41,13 @@ namespace blocksci {
         }
     }
     
-    ScriptHash::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptHash::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string ScriptHash::addressString() const {
         return CBitcoinAddress(getAddressHash(), AddressType::Enum::SCRIPTHASH, getAccess().config.chainConfig).ToString();
@@ -68,7 +74,13 @@ namespace blocksci {
         return ss.str();
     }
     
-    WitnessScriptHash::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    WitnessScriptHash::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string WitnessScriptHash::addressString() const {
         std::vector<uint8_t> witprog;

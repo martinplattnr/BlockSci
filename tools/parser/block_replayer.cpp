@@ -59,11 +59,11 @@ void replayBlock(const ParserConfiguration<FileTag> &config, blocksci::BlockHeig
     
     std::vector<unsigned char> coinbase;
     
-    HashIndexCreator hashDb(config, config.dataConfig.hashIndexFilePath());
+    HashIndexCreator hashDb(config, config.dataConfig.rootHashIndexFilePath());
     // todo-fork: change is just to avoid build failure
     AddressState addressState{config.addressPath(), config.rootAddressPath(), hashDb};
     blocksci::ChainAccess chainAccess{config.dataConfig.chainDirectory(), config.dataConfig.blocksIgnored, config.dataConfig.errorOnReorg};
-    blocksci::ScriptAccess scripts{config.dataConfig.scriptsDirectory()};
+    blocksci::ScriptAccess scripts{config.dataConfig.rootScriptsDirectory(), config.dataConfig.scriptsDirectory()};
     
     auto blockPtr = chainAccess.getBlock(blockNum);
     auto firstTxNum = blockPtr->firstTxIndex;

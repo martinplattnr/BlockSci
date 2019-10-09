@@ -15,8 +15,11 @@ using blocksci::AddressType;
 using blocksci::DedupAddressType;
 
 AddressWriter::AddressWriter(const ParserConfigurationBase &config) :
-scriptFiles(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
-    return (filesystem::path{config.dataConfig.scriptsDirectory()}/std::string{dedupAddressName(tag)}).str();
+scriptFiles(blocksci::apply(DedupAddressType::all(), [&] (auto tag) {
+    return (filesystem::path{config.dataConfig.rootScriptsDirectory()}/std::string{dedupAddressName(tag)}).str();
+})),
+scriptHeaderFiles(blocksci::apply(DedupAddressType::all(), [&] (auto tag) {
+    return (filesystem::path{config.dataConfig.scriptsDirectory()}/std::string{dedupAddressName(tag) + "_header"}).str();
 })) {
 }
 
@@ -36,8 +39,9 @@ void AddressWriter::serializeWrappedInput(const AnyScriptInput &input, uint32_t 
     mpark::visit([&](auto &scriptInput) { this->serializeWrappedInput(scriptInput.data, txNum, outputTxNum); }, input.wrapped);
 }
 
-void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::PUBKEY> &output, ScriptFile<DedupAddressType::PUBKEY> &file, bool topLevel) {
-    auto data = file[output.scriptNum - 1];
+void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::PUBKEY> &output, ScriptFile<DedupAddressType::PUBKEY> &dataFile, ScriptHeaderFile<DedupAddressType::PUBKEY> &headerFile, bool topLevel) {
+    auto data = dataFile[output.scriptNum - 1];
+    auto header = headerFile[output.scriptNum - 1];
 
     // determine length of public key and only copy relevant bytes
     auto itBegin = output.data.pubkey.begin();
@@ -45,34 +49,38 @@ void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::PUBKEY> &
     std::copy(itBegin, itEnd, data->pubkey.begin());
 
     data->hasPubkey = true;
-    data->saw(AddressType::PUBKEY, topLevel);
+    header->saw(AddressType::PUBKEY, topLevel);
 }
 
-void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::MULTISIG_PUBKEY> &output, ScriptFile<DedupAddressType::PUBKEY> &file, bool topLevel) {
-    auto data = file[output.scriptNum - 1];
+void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::MULTISIG_PUBKEY> &output, ScriptFile<DedupAddressType::PUBKEY> &dataFile, ScriptHeaderFile<DedupAddressType::PUBKEY> &headerFile, bool topLevel) {
+    auto data = dataFile[output.scriptNum - 1];
+    auto header = headerFile[output.scriptNum - 1];
+
     std::copy(output.data.pubkey.begin(), output.data.pubkey.end(), data->pubkey.begin());
-    data->saw(AddressType::MULTISIG_PUBKEY, topLevel);
+    header->saw(AddressType::MULTISIG_PUBKEY, topLevel);
     data->hasPubkey = true;
 }
 
-void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::WITNESS_SCRIPTHASH> &output, ScriptFile<blocksci::DedupAddressType::SCRIPTHASH> &file, bool topLevel) {
-    auto data = file[output.scriptNum - 1];
+void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::WITNESS_SCRIPTHASH> &output, ScriptFile<DedupAddressType::SCRIPTHASH> &dataFile, ScriptHeaderFile<DedupAddressType::SCRIPTHASH> &headerFile, bool topLevel) {
+    auto data = dataFile[output.scriptNum - 1];
+    auto header = headerFile[output.scriptNum - 1];
+
     data->hash256 = output.data.hash;
     data->isSegwit = true;
-    data->saw(AddressType::WITNESS_SCRIPTHASH, topLevel);
+    header->saw(AddressType::WITNESS_SCRIPTHASH, topLevel);
 }
 
-void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::NONSTANDARD> &output, ScriptFile<blocksci::DedupAddressType::NONSTANDARD> &file, bool topLevel) {
-    auto data = file[output.scriptNum - 1];
-    std::get<0>(data)->saw(AddressType::NONSTANDARD, topLevel);
+void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::NONSTANDARD> &output, ScriptFile<DedupAddressType::NONSTANDARD> &, ScriptHeaderFile<DedupAddressType::NONSTANDARD> &headerFile, bool topLevel) {
+    auto header = headerFile[output.scriptNum - 1];
+    header->saw(AddressType::NONSTANDARD, topLevel);
 }
-void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::WITNESS_UNKNOWN> &output, ScriptFile<blocksci::DedupAddressType::WITNESS_UNKNOWN> &file, bool topLevel) {
-    auto data = file[output.scriptNum - 1];
-    std::get<0>(data)->saw(AddressType::WITNESS_UNKNOWN, topLevel);
+void AddressWriter::serializeOutputImp(const ScriptOutput<AddressType::WITNESS_UNKNOWN> &output, ScriptFile<DedupAddressType::WITNESS_UNKNOWN> &, ScriptHeaderFile<DedupAddressType::WITNESS_UNKNOWN> &headerFile, bool topLevel) {
+    auto header = headerFile[output.scriptNum - 1];
+    header->saw(AddressType::WITNESS_UNKNOWN, topLevel);
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::PUBKEYHASH> &input, ScriptFile<DedupAddressType::PUBKEY> &file) {
-    auto data = file[input.scriptNum - 1];
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::PUBKEYHASH> &input, ScriptFile<DedupAddressType::PUBKEY> &dataFile) {
+    auto data = dataFile[input.scriptNum - 1];
     if (!data->hasPubkey) {
         // determine length of public key and only copy relevant bytes
         auto itBegin = input.data.pubkey.begin();
@@ -83,16 +91,16 @@ void AddressWriter::serializeInputImp(const ScriptInput<AddressType::PUBKEYHASH>
     }
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_PUBKEYHASH> &input, ScriptFile<DedupAddressType::PUBKEY> &file) {
-    auto data = file[input.scriptNum - 1];
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_PUBKEYHASH> &input, ScriptFile<DedupAddressType::PUBKEY> &dataFile) {
+    auto data = dataFile[input.scriptNum - 1];
     if (!data->hasPubkey) {
         std::copy(input.data.pubkey.begin(), input.data.pubkey.end(), data->pubkey.begin());
         data->hasPubkey = true;
     }
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_SCRIPTHASH> &input, ScriptFile<DedupAddressType::SCRIPTHASH> &file) {
-    auto data = file[input.scriptNum - 1];
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_SCRIPTHASH> &input, ScriptFile<DedupAddressType::SCRIPTHASH> &dataFile) {
+    auto data = dataFile[input.scriptNum - 1];
     data->wrappedAddress = input.data.wrappedScriptOutput.address();
 }
 
@@ -106,8 +114,8 @@ void AddressWriter::serializeWrappedInput(const ScriptInputData<AddressType::Enu
     serializeInput(*data.wrappedScriptInput, txNum, outputTxNum);
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::SCRIPTHASH> &input, ScriptFile<DedupAddressType::SCRIPTHASH> &file) {
-    auto data = file[input.scriptNum - 1];
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::SCRIPTHASH> &input, ScriptFile<DedupAddressType::SCRIPTHASH> &dataFile) {
+    auto data = dataFile[input.scriptNum - 1];
     data->wrappedAddress = input.data.wrappedScriptOutput.address();
 }
 
@@ -121,22 +129,22 @@ void AddressWriter::serializeWrappedInput(const ScriptInputData<AddressType::Enu
     serializeWrappedInput(*data.wrappedScriptInput, txNum, outputTxNum);
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::NONSTANDARD> &input, ScriptFile<DedupAddressType::NONSTANDARD> &file) {
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::NONSTANDARD> &input, ScriptFile<DedupAddressType::NONSTANDARD> &dataFile) {
     blocksci::NonstandardSpendScriptData scriptData(static_cast<uint32_t>(input.data.script.size()));
     blocksci::ArbitraryLengthData<blocksci::NonstandardSpendScriptData> data(scriptData);
     data.add(input.data.script.begin(), input.data.script.end());
-    file.write<1>(input.scriptNum - 1, data);
+    dataFile.write<1>(input.scriptNum - 1, data);
 }
 
-void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_UNKNOWN> &input, ScriptFile<DedupAddressType::WITNESS_UNKNOWN> &file) {
+void AddressWriter::serializeInputImp(const ScriptInput<AddressType::WITNESS_UNKNOWN> &input, ScriptFile<DedupAddressType::WITNESS_UNKNOWN> &dataFile) {
     blocksci::WitnessUnknownSpendScriptData scriptData(static_cast<uint32_t>(input.data.script.size()));
     blocksci::ArbitraryLengthData<blocksci::WitnessUnknownSpendScriptData> data(scriptData);
     data.add(input.data.script.begin(), input.data.script.end());
-    file.write<1>(input.scriptNum - 1, data);
+    dataFile.write<1>(input.scriptNum - 1, data);
 }
 
 void AddressWriter::rollback(const blocksci::State &state) {
-    blocksci::for_each(blocksci::DedupAddressType::all(), [&](auto tag) {
+    blocksci::for_each(DedupAddressType::all(), [&](auto tag) {
         auto &file = std::get<ScriptFile<tag()>>(scriptFiles);
         file.truncate(state.scriptCounts[static_cast<size_t>(tag)]);
     });

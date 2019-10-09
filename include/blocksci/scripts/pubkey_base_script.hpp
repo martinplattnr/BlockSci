@@ -17,7 +17,8 @@
 namespace blocksci {
     class BLOCKSCI_EXPORT PubkeyAddressBase : public ScriptBase {
     protected:
-        PubkeyAddressBase(uint32_t scriptNum_, AddressType::Enum type_, const PubkeyData *rawData_, DataAccess &access_) : ScriptBase(scriptNum_, type_, access_, rawData_) {}
+        PubkeyAddressBase(uint32_t scriptNum_, AddressType::Enum type_, const ScriptHeader *scriptHeader_, const PubkeyData *scriptData_, DataAccess &access_)
+            : ScriptBase(scriptNum_, type_, access_, scriptHeader_, scriptData_) {}
         
         const PubkeyData *getData() const {
             return reinterpret_cast<const PubkeyData *>(ScriptBase::getData());

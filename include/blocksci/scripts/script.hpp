@@ -17,26 +17,38 @@ namespace blocksci {
     class DataAccess;
     
     class BLOCKSCI_EXPORT ScriptBase : public Address  {
+        const ScriptHeader *rawHeader;
         const ScriptDataBase *rawData;
-        
+
     protected:
         const ScriptDataBase *getData() const {
             return rawData;
         }
     public:
         ScriptBase() = default;
-        ScriptBase(uint32_t scriptNum_, AddressType::Enum type_, DataAccess &access_, const ScriptDataBase *rawData_) : Address(scriptNum_, type_, access_), rawData(rawData_) {}
+        ScriptBase(uint32_t scriptNum_, AddressType::Enum type_, DataAccess &access_, const ScriptHeader *scriptHeader_, const ScriptDataBase *scriptData_)
+            : Address(scriptNum_, type_, access_), rawHeader(scriptHeader_), rawData(scriptData_) {}
         
         explicit ScriptBase(const Address &address);
         
         void visitPointers(const std::function<void(const Address &)> &) const {}
 
-        uint32_t getFirstTxIndex() const {
-            return rawData->txFirstSeen;
+        bool hasBeenSeen() const {
+            return rawHeader->txFirstSeen != std::numeric_limits<uint32_t>::max();
+        }
+
+        ranges::optional<uint32_t> getFirstTxIndex() const {
+            auto txSeenIndex = rawHeader->txFirstSeen;
+            if (txSeenIndex != std::numeric_limits<uint32_t>::max()) {
+                return txSeenIndex;
+            }
+            else {
+                return ranges::nullopt;
+            }
         }
         
         ranges::optional<uint32_t> getTxRevealedIndex() const {
-            auto txRevealedIndex = rawData->txFirstSpent;
+            auto txRevealedIndex = rawHeader->txFirstSpent;
             if (txRevealedIndex != std::numeric_limits<uint32_t>::max()) {
                 return txRevealedIndex;
             } else {
@@ -47,8 +59,8 @@ namespace blocksci {
         bool hasBeenSpent() const {
             return getTxRevealedIndex().has_value();
         }
-        
-        Transaction getFirstTransaction() const;
+
+        ranges::optional<Transaction> getFirstTransaction() const;
         ranges::optional<Transaction> getTransactionRevealed() const;
     };
 } // namespace blocksci

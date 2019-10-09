@@ -75,8 +75,8 @@ namespace blocksci {
         void visitPointers(const std::function<void(const Address &)> &func) {
             mpark::visit([&](auto &scriptAddress) { scriptAddress.visitPointers(func); }, wrapped);
         }
-        
-        uint32_t firstTxIndex() {
+
+        ranges::optional<uint32_t> firstTxIndex() {
             return mpark::visit([&](auto &scriptAddress) { return scriptAddress.getFirstTxIndex(); }, wrapped);
         }
         
@@ -84,11 +84,16 @@ namespace blocksci {
             return mpark::visit([&](auto &scriptAddress) { return scriptAddress.getTxRevealedIndex(); }, wrapped);
         }
 
-        Transaction getFirstTransaction() const;
+        ranges::optional<Transaction> getFirstTransaction() const;
         ranges::optional<Transaction> getTransactionRevealed() const;
 
         bool hasBeenSpent() const {
             return mpark::visit([&](auto &scriptAddress) { return scriptAddress.hasBeenSpent(); }, wrapped);
+        }
+
+        // todo-fork: add to python interface
+        bool hasBeenSeen() const {
+            return mpark::visit([&](auto &scriptAddress) { return scriptAddress.hasBeenSeen(); }, wrapped);
         }
     
         EquivAddress getEquivAddresses(bool nestedEquivalent) const;

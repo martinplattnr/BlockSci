@@ -16,7 +16,13 @@
 
 namespace blocksci {
 
-    ScriptAddress<AddressType::NULL_DATA>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::NULL_DATA>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
 
     std::string ScriptAddress<AddressType::NULL_DATA>::toPrettyString() const {
         std::stringstream ss;

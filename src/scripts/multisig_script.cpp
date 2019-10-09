@@ -17,7 +17,13 @@
 #include <sstream>
 
 namespace blocksci {
-    ScriptAddress<AddressType::MULTISIG>::ScriptAddress(uint32_t addressNum_, DataAccess &access_) : ScriptAddress(addressNum_, access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_), access_) {}
+    ScriptAddress<AddressType::MULTISIG>::ScriptAddress(uint32_t addressNum_, DataAccess &access_)
+        : ScriptAddress(
+            addressNum_,
+            access_.getScripts().getScriptHeader(addressNum_, dedupType(addressType)),
+            access_.getScripts().getScriptData<dedupType(addressType)>(addressNum_),
+            access_
+        ) {}
     
     std::string ScriptAddress<AddressType::MULTISIG>::toString() const {
         std::stringstream ss;

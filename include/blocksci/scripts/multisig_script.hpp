@@ -29,7 +29,8 @@ namespace blocksci {
     public:
         constexpr static AddressType::Enum addressType = AddressType::MULTISIG;
         
-        ScriptAddress(uint32_t addressNum_, const MultisigData *data_, DataAccess &access_) : ScriptBase(addressNum_, addressType, access_, data_) {}
+        ScriptAddress(uint32_t addressNum_, const ScriptHeader *scriptHeader_, const MultisigData *scriptData_, DataAccess &access_)
+            : ScriptBase(addressNum_, addressType, access_, scriptHeader_, scriptData_) {}
         ScriptAddress(uint32_t addressNum_, DataAccess &access_);
         
         std::string toString() const;
