@@ -152,11 +152,12 @@ namespace blocksci {
                 maxHeight = blocksIgnored;
             }
 
-            // set forkTxIndex from firstForkedBlockHeight
+            // set firstForkedTxIndex from firstForkedBlockHeight
+            // todo-fork: check for off-by-1 error
             if (maxHeight >= firstForkedBlockHeight && firstForkedBlockHeight > BlockHeight(0)) {
                 auto firstForkedBlock = blockFile[firstForkedBlockHeight];
-                forkTxIndex = firstForkedBlock->firstTxIndex;
-                std::cout << "forkTxIndex = " << forkTxIndex << std::endl;
+                firstForkedTxIndex = firstForkedBlock->firstTxIndex;
+                std::cout << "firstForkedTxIndex = " << firstForkedTxIndex << std::endl;
                 forkInputIndex = 0; // todo-fork
             }
 
@@ -182,39 +183,14 @@ namespace blocksci {
             std::cout << "setup(): " << std::endl;
             std::cout << "  - type = " << getChainType() << std::endl;
             std::cout << "  - firstForkedBlockHeight = " << firstForkedBlockHeight << std::endl;
-            std::cout << "  - forkTxIndex = " << forkTxIndex << std::endl;
+            std::cout << "  - firstForkedTxIndex = " << firstForkedTxIndex << std::endl << std::flush;
             std::cout << std::endl << std::endl;
         }
 
     public:
         BlockHeight firstForkedBlockHeight = 0;
-        uint32_t forkTxIndex = 0;
+        uint32_t firstForkedTxIndex = 0;
         uint64_t forkInputIndex = 0;
-        /*
-        explicit ChainAccess(ChainConfiguration currentChainConfiguration) :
-        blockFile(blockFilePath(config_.chainDirectory())),
-        blockCoinbaseFile(blockCoinbaseFilePath(config_.chainDirectory())),
-        txFile(txFilePath(config_.chainDirectory())),
-        txVersionFile(txVersionFilePath(config_.chainDirectory())),
-        txFirstInputFile(firstInputFilePath(config_.chainDirectory())),
-        txFirstOutputFile(firstOutputFilePath(config_.chainDirectory())),
-        inputSpentOutputFile(inputSpentOutNumFilePath(config_.chainDirectory())),
-        sequenceFile(sequenceFilePath(config_.chainDirectory())),
-        txHashesFile(txHashesFilePath(config_.chainDirectory())),
-        blocksIgnored(config_.blocksIgnored),
-        errorOnReorg(config_.errorOnReorg),
-        firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
-            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
-            std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
-
-            if (config_.chainConfig.parentChainConfiguration) {
-                // @todo: create ChainAccess
-                std::cout << "parent chain config is available" << std::endl;
-            }
-
-            setup();
-        }
-        */
 
         explicit ChainAccess(DataConfiguration& config_) :
         blockFile(blockFilePath(config_.chainDirectory())),
@@ -230,11 +206,11 @@ namespace blocksci {
         blocksIgnored(config_.blocksIgnored),
         errorOnReorg(config_.errorOnReorg),
         firstForkedBlockHeight(config_.chainConfig.firstForkedBlockHeight) {
-            std::cout << "Initializing ChainAccess only with DataConfiguration." << std::endl;
-            std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
+            //std::cout << "Initializing ChainAccess only with DataConfiguration." << std::endl;
+            //std::cout << "config_.chainDirectory(): " << config_.chainDirectory() << std::endl;
 
             if (config_.parentDataConfiguration) {
-                std::cout << "  parent chain config is available" << std::endl;
+                //std::cout << "  parent chain config is available" << std::endl;
                 this->parentChain = std::make_unique<ChainAccess>(*config_.parentDataConfiguration);
             }
 
@@ -254,33 +230,8 @@ namespace blocksci {
         preForkLinkedTxNumFile(preForkLinkedTxNumFilePath(baseDirectory)),
         blocksIgnored(blocksIgnored),
         errorOnReorg(errorOnReorg) {
-            std::cout << "Initializing ChainAccess without parentChainConfigPath parameter." << std::endl;
-            std::cout << "baseDirectory: " << baseDirectory << std::endl;
             setup();
         }
-
-        /*
-        explicit ChainAccess(const filesystem::path &baseDirectory, BlockHeight blocksIgnored, bool errorOnReorg, const filesystem::path &parentChainConfigPath, BlockHeight firstForkedBlockHeight) :
-        blockFile(blockFilePath(baseDirectory), firstForkedBlockHeight),
-        blockCoinbaseFile(blockCoinbaseFilePath(baseDirectory)),
-        txFile(txFilePath(baseDirectory)),
-        txVersionFile(txVersionFilePath(baseDirectory)),
-        txFirstInputFile(firstInputFilePath(baseDirectory)),
-        txFirstOutputFile(firstOutputFilePath(baseDirectory)),
-        inputSpentOutputFile(inputSpentOutNumFilePath(baseDirectory)),
-        sequenceFile(sequenceFilePath(baseDirectory)),
-        txHashesFile(txHashesFilePath(baseDirectory)),
-        blocksIgnored(blocksIgnored),
-        errorOnReorg(errorOnReorg),
-        parentChain(std::make_unique<const ChainAccess>(parentChainConfigPath, blocksIgnored, errorOnReorg, 0)),
-        firstForkedBlockHeight(firstForkedBlockHeight)
-        {
-            std::cout << "Initializing ChainAccess with parentChainConfigPath parameter." << std::endl;
-            std::cout << "baseDirectory: " << baseDirectory << std::endl;
-            std::cout << "parentChainConfigPath: " << parentChainConfigPath << std::endl;
-            setup();
-        }
-        */
         
         static filesystem::path txFilePath(const filesystem::path &baseDirectory) {
             return baseDirectory/"tx";
@@ -363,87 +314,71 @@ namespace blocksci {
             else if (parentChain) {
                 return parentChain->getBlock(blockHeight);
             }
-            return nullptr;
-
-            /*
-            if (parentChain && blockHeight < 200) {
-                return (*parentChain).blockFile[static_cast<OffsetType>(blockHeight)];
-            }
-            */
-            //return blockFile[static_cast<OffsetType>(blockHeight)];
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const uint256 *getTxHash(uint32_t index) const {
             reorgCheck();
 
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getTxHash(" << index << ")" << std::endl;
                 return txHashesFile[index];
             }
             else if (parentChain) {
                 return parentChain->getTxHash(index);
             }
-            return nullptr;
-
-            //return txHashesFile[index];
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const RawTransaction *getTx(uint32_t index) const {
             reorgCheck();
 
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getTx(" << index << ")" << std::endl;
                 return txFile.getData(index);
             }
             else {
                 return parentChain->getTx(index);
             }
-            return nullptr;
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const int32_t *getTxVersion(uint32_t index) const {
             reorgCheck();
 
-            if (index >= forkTxIndex) {
-                //std::cout << getChainType() << ".getTxVersion(" << index << ")" << std::endl;
+            if (index >= firstForkedTxIndex) {
                 return txVersionFile[index];
             }
             else if (parentChain) {
                 return parentChain->getTxVersion(index);
             }
-            return nullptr;
-
-            //return txVersionFile[index];
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const uint32_t *getSequenceNumbers(uint32_t index) const {
             reorgCheck();
 
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getSequenceNumbers(" << index << ")" << std::endl;
                 return sequenceFile[static_cast<OffsetType>(getFirstInputNumber(index))];
             }
             else if (parentChain) {
                 return parentChain->getSequenceNumbers(index);
             }
-            return nullptr;
-
-            //return sequenceFile[static_cast<OffsetType>(*txFirstInputFile[index])];
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const uint16_t *getSpentOutputNumbers(uint32_t index) const {
             reorgCheck();
 
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getSpentOutputNumbers(" << index << ")" << std::endl;
                 return inputSpentOutputFile[static_cast<OffsetType>(getFirstInputNumber(index))];
             }
             else if (parentChain) {
                 return parentChain->getSpentOutputNumbers(index);
             }
-            return nullptr;
-
-            //return inputSpentOutputFile[static_cast<OffsetType>(*txFirstInputFile[index])];
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         /** Get TxData object for given tx number */
@@ -532,36 +467,35 @@ namespace blocksci {
         }
 
         uint64_t getFirstInputNumber(uint32_t index) const {
-            if (index >= forkTxIndex) {
-                //std::cout << getChainType() << ".getFirstInputNumber(" << index << ")" << std::endl;
+            if (index >= firstForkedTxIndex) {
                 return *txFirstInputFile[index];
             }
             else if (parentChain) {
                 return parentChain->getFirstInputNumber(index);
             }
-            return 0; // TODO: default value
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         uint64_t getFirstOutputNumber(uint32_t index) const {
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getFirstOutputNumber(" << index << ")" << std::endl;
                 return *txFirstOutputFile[index];
             }
             else if (parentChain) {
                 return parentChain->getFirstOutputNumber(index);
             }
-            return 0; // TODO: default value
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         uint16_t getSpentOutputNumberByInputNumber(uint64_t index) const {
-            if (index >= forkTxIndex) {
+            if (index >= firstForkedTxIndex) {
                 //std::cout << getChainType() << ".getSpentOutputNumberByInputNumber(" << index << ")" << std::endl;
                 return *inputSpentOutputFile[index];
             }
             else if (parentChain) {
                 return parentChain->getFirstOutputNumber(index);
             }
-            return 0; // TODO: default value
+            throw std::runtime_error("Whoopsie. Something went terribly wrong");
         }
 
         const uint32_t *getPreForkLinkedTxNum(uint32_t txNum, uint16_t outputNum) const {
@@ -571,13 +505,13 @@ namespace blocksci {
 
         // todo: not used, could be removed; if not, pointer.chainId is not considered (but should be?)
         uint32_t getLinkedTxNumFork(const OutputPointer &pointer, uint32_t &defaultValue) {
-            if (pointer.txNum > forkTxIndex) {
+            if (pointer.txNum > firstForkedTxIndex) {
                 return defaultValue;
             }
             ChainAccess* chainAccessTmp = this;
             while (chainAccessTmp->parentChain) {
                 chainAccessTmp = chainAccessTmp->parentChain.get();
-                if (pointer.txNum > chainAccessTmp->forkTxIndex) {
+                if (pointer.txNum > chainAccessTmp->firstForkedTxIndex) {
                     uint64_t outputIndex = getFirstOutputNumber(pointer.txNum);
                     return *(chainAccessTmp->preForkLinkedTxNumFile[outputIndex + pointer.inoutNum]);
                 }
@@ -598,8 +532,8 @@ namespace blocksci {
             return firstForkedBlockHeight;
         }
 
-        uint32_t getForkTxIndex() const {
-            return forkTxIndex;
+        uint32_t getFirstForkedTxIndex() const {
+            return firstForkedTxIndex;
         }
 
         const std::string getChainType() const {

@@ -103,7 +103,7 @@ namespace blocksci {
         //std::cout << "spendingTxIndexTmp=" << spendingTxIndexTmp << "| inout->getLinkedTxNum()=" << inout->getLinkedTxNum() << std::endl;
 
         uint32_t spendingTxIndexTmp;
-        if (pointer.txNum >= access->getChain().forkTxIndex) {
+        if (pointer.txNum >= access->getChain().firstForkedTxIndex) {
             // Output was created after the fork -> use Inout.linkedTxNum
             spendingTxIndexTmp = inout->getLinkedTxNum();
         }
