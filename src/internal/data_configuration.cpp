@@ -85,7 +85,7 @@ namespace blocksci {
     }
     
     json loadConfig(const std::string &configFilePath) {
-        std::cout << "loading config file " << configFilePath << std::endl;
+        //std::cout << "loading config file " << configFilePath << std::endl;
 
         filesystem::path configFile{configFilePath};
         

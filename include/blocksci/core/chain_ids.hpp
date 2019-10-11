@@ -146,6 +146,8 @@ namespace blocksci {
             else if (name == "zcash_testnet") {
                 return ChainId::ZCASH_TESTNET;
             }
+
+            throw std::runtime_error("unknown chain name");
         }
     };
 }

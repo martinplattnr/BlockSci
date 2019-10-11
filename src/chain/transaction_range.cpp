@@ -27,7 +27,6 @@ namespace blocksci {
     }
     
     void TransactionRange::iterator::updateNextBlock() {
-        // todo-fork: check if new block is on another chain and reset chain id
         auto block = tx.access->getChain().getBlock(tx.blockHeight);
         prevBlockLast = block->firstTxIndex - 1;
         nextBlockFirst = tx.blockHeight < tx.access->getChain().blockCount() - BlockHeight{1} ? block->firstTxIndex + static_cast<uint32_t>(block->txCount) : std::numeric_limits<decltype(nextBlockFirst)>::max();

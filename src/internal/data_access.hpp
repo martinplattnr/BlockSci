@@ -108,8 +108,7 @@ namespace blocksci {
             return *hashIndex;
         }
 
-        // todo-fork: commented to prevent compiler error
-        //operator DataConfiguration() const { return config; }
+        operator DataConfiguration() const { return config; }
         
         void reload();
     };

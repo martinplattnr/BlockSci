@@ -373,8 +373,8 @@ namespace blocksci {
         
         // Perform clustering
 
-        auto &scripts = chains[0].getAccess().getScripts(); // todo-fork: for forked chains, returns the ScriptAccess of the root chain
-        size_t totalScriptCount = scripts.totalAddressCount(); // todo-fork: should be correct already
+        auto &scripts = chains[0].getAccess().getScripts();
+        size_t totalScriptCount = scripts.totalAddressCount();
         
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {

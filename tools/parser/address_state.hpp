@@ -21,8 +21,8 @@
 
 enum class AddressLocation {
     MultiUseMap, // map of addresses that are used multiple times
-    LevelDb, // todo: can be renamed to RocksDb
-    NotFound
+    RocksDb,     // DB that contains a hash of all script identifiers (pubkey, scripthash etc.)
+    NotFound     // address was not found in any of the 3 data structures (bloom filter, multi-use map, rocksdb)
 };
 
 template<blocksci::AddressType::Enum type>
@@ -46,6 +46,22 @@ constexpr int startingCount<blocksci::DedupAddressType::SCRIPTHASH> = 100'000'00
 template<>
 constexpr int startingCount<blocksci::DedupAddressType::MULTISIG> = 100'000'000;
 
+
+/** This class is used to detect if an address has been seen before, and if yes, which scriptNum was assigned to it.
+ *
+ *  It uses 3 data layers, the fastest is accessed first, then the second-fastest if needed, etc.
+ *
+ *  1) Bloom filter (fastest; shared between forks):
+ *      A bloom filter is queried to reliably detect if the address has never been seen.
+ *
+ *  todo-fork: the multi-use map could also be shared between forks
+ *  2) Multi-use map (slower; not shared between forks):
+ *      If the bloom filter returns that the address may have been seen, the multi-use map is queried.
+ *      It stores all addresses that have been used multiple times, as it is likely that addresses are reused again if they are used twice.
+ *
+ *  3) RocksDB database (slowest; shared between forks):
+ *      If 2) does not return a result, a RocksDB database is queried.
+ */
 class AddressState {
     static constexpr auto AddressFalsePositiveRate = .05;
     
@@ -65,11 +81,12 @@ class AddressState {
 
     template<blocksci::DedupAddressType::Enum scriptType>
     using AddressBloomFilterPointer = std::unique_ptr<AddressBloomFilter<scriptType>>;
-    
-    filesystem::path path;
 
-    // path to the parser/addresses directory of the root chain when working with forks, otherwise same as path
-    filesystem::path rootPath;
+    /** path to the parser/addresses directory of the current chain, when working with forks, otherwise same as rootDirectory */
+    filesystem::path localDirectory;
+
+    /** path to the parser/addresses directory of the root chain, when working with forks, otherwise same as localDirectory */
+    filesystem::path rootDirectory;
 
     HashIndexCreator &db;
     
@@ -106,8 +123,7 @@ class AddressState {
     }
     
 public:
-    // todo: maybe hashDb can be shared, while the rest (MultiMap and bloomfilter) could be per-chain
-    AddressState(filesystem::path path, filesystem::path rootPath, HashIndexCreator &hashDb);
+    AddressState(filesystem::path localDirectory, filesystem::path rootDirectory, HashIndexCreator &hashDb);
     AddressState(const AddressState &) = delete;
     AddressState &operator=(const AddressState &) = delete;
     AddressState(AddressState &&) = delete;
@@ -149,7 +165,7 @@ public:
         ranges::optional<uint32_t> destNum = db.lookupAddress<blocksci::DedupAddressInfo<dedupType(type)>::reprType>(hash);
         if (destNum) {
             dbCount++;
-            return {hash, AddressLocation::LevelDb, *destNum};
+            return {hash, AddressLocation::RocksDb, *destNum};
         } else {
             bloomFPCount++;
             // We must have had a false positive
@@ -163,7 +179,7 @@ public:
     std::pair<uint32_t, bool> resolveAddress(const RawAddressInfo<type> &addressInfo) {
         bool existingAddress = false;
         switch (addressInfo.location) {
-            case AddressLocation::LevelDb: {
+            case AddressLocation::RocksDb: {
                 // address was found in RocksDb, so it occurs at least twice -> add it to multiAddressMaps
                 auto &multiAddressMap = std::get<AddressMap<dedupType(type)>>(multiAddressMaps);
                 multiAddressMap.add(addressInfo.hash, addressInfo.addressNum);

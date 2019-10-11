@@ -23,19 +23,19 @@ namespace {
     static constexpr auto scriptCountsFileName = "scriptCounts.txt";
 }
 
-AddressState::AddressState(filesystem::path path_, filesystem::path rootPath_, HashIndexCreator &hashDb) : path(std::move(path_)), rootPath(std::move(rootPath_)), db(hashDb), addressBloomFilters(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
-    return std::make_unique<AddressBloomFilter<tag>>(rootPath/std::string(bloomFileName));
-}))  {
-    // todo-fork: use local data for the multi-address-maps
+AddressState::AddressState(filesystem::path localDirectory_, filesystem::path rootDirectory_, HashIndexCreator &hashDb) : localDirectory(std::move(localDirectory_)), rootDirectory(std::move(rootDirectory_)), db(hashDb), addressBloomFilters(blocksci::apply(blocksci::DedupAddressType::all(), [&] (auto tag) {
+    return std::make_unique<AddressBloomFilter<tag>>(rootDirectory/std::string(bloomFileName));
+})) {
+    // use local data for the multi-address-maps
     blocksci::for_each(multiAddressMaps, [&](auto &multiAddressMap) {
         std::stringstream ss;
         ss << multiAddressFileName << "_" << dedupAddressName(multiAddressMap.type) << ".dat";
         // the multi address map files are stored locally and per-chain, in the chain's output directory, not in the root chain's directory
-        multiAddressMap.unserialize((path/ss.str()).str());
+        multiAddressMap.unserialize((localDirectory/ss.str()).str());
     });
 
-    // todo-fork: use the root scriptCounts.txt file
-    std::ifstream inputFile((rootPath/std::string(scriptCountsFileName)).str());
+    // use the root scriptCounts.txt file
+    std::ifstream inputFile((rootDirectory/std::string(scriptCountsFileName)).str());
 
     if (inputFile) {
         uint32_t value;
@@ -54,11 +54,11 @@ AddressState::~AddressState() {
         std::stringstream ss;
         ss << multiAddressFileName << "_" << dedupAddressName(multiAddressMap.type) << ".dat";
         // the multi address map files are stored locally and per-chain, in the chain's output directory, not in the root chain's directory
-        multiAddressMap.serialize((path/ss.str()).str());
+        multiAddressMap.serialize((localDirectory/ss.str()).str());
     });
 
     // the scripts-counts file is stored once for all related (forked) chains
-    std::ofstream outputFile((rootPath/std::string(scriptCountsFileName)).str());
+    std::ofstream outputFile((rootDirectory/std::string(scriptCountsFileName)).str());
     for (auto value : scriptIndexes) {
         outputFile << value << " ";
     }

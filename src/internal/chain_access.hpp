@@ -115,9 +115,11 @@ namespace blocksci {
         /** Stores a mapping of (output number) to (spending tx number) for forks before the fork */
         FixedSizeFileMapper<uint32_t> preForkLinkedTxNumFile;
 
-        /** Hash of the last loaded block */
+        /** Hash of the last loaded block (copy of the hash) */
         uint256 lastBlockHash;
-        const uint256 *lastBlockHashDisk = nullptr; //TODO: comment
+
+        /** Hash of the last loaded block (pointer; is used to compare *pointer to lastBlockHash to detect block reorgs) */
+        const uint256 *lastBlockHashDisk = nullptr;
 
         /** Number of the highest loaded block, including genesis block, eg. is 2 if 1 block is mined on the genesis block */
         BlockHeight maxHeight = 0;

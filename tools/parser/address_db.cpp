@@ -21,7 +21,7 @@ using blocksci::InoutPointer;
 using blocksci::State;
 using blocksci::DedupAddressType;
 
-AddressDB::AddressDB(const ParserConfigurationBase &config_, const filesystem::path &path) : ParserIndex(config_, "addressDB"), db(path, false) {
+AddressDB::AddressDB(const ParserConfigurationBase &config_, const filesystem::path &path) : ParserIndex(config_, "addressDBState"), db(path, false) {
     outputCache.reserve(cacheSize);
     nestedCache.reserve(cacheSize);
 }

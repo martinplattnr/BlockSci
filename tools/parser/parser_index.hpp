@@ -32,12 +32,12 @@ template <typename T>
 class ParserIndex {
 protected:
     const ParserConfigurationBase &config;
-    filesystem::path cachePath;
+    filesystem::path stateCachePath;
     blocksci::State latestState;
 public:
-    ParserIndex(const ParserConfigurationBase &config_, const std::string &resultName) : config(config_), cachePath(config_.parserDirectory()/(resultName + ".txt")) {
-        if (cachePath.exists()) {
-            std::ifstream inputFile(cachePath.str());
+    ParserIndex(const ParserConfigurationBase &config_, const std::string &resultName) : config(config_), stateCachePath(config_.parserDirectory()/(resultName + ".txt")) {
+        if (stateCachePath.exists()) {
+            std::ifstream inputFile(stateCachePath.str());
             inputFile >> latestState;
         }
     }
@@ -46,7 +46,7 @@ public:
     ParserIndex(ParserIndex &&) = delete;
     ParserIndex &operator=(ParserIndex &&) = delete;
     ~ParserIndex() {
-        std::ofstream outputFile(cachePath.str());
+        std::ofstream outputFile(stateCachePath.str());
         outputFile << latestState;
     }
     

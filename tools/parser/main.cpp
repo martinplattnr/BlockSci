@@ -426,7 +426,7 @@ void updateChainForkAware(const filesystem::path &configFilePath, bool fullParse
 
             /* parser/addressDB.txt needs to be removed to ensure that all entries in the AddressIndex DB are duplicated
              * for the chainId of the child chain, that is parsed afterwards.
-             * todo-fork: A better solution would be to handle this directly inAddressDB::processTx, by adding outputs
+             * A better solution would be to handle this directly in AddressDB::processTx, by adding outputs
              * for every child chain by looping config.dataConfig.childDataConfiguration recursively.
              */
             std::cout << "Remove parser/addressDB.txt" << std::endl;
