@@ -42,16 +42,14 @@ namespace blocksci {
         /** Contains data to uniquely identify one output using chainId, txNum, and inoutNum */
         OutputPointer pointer;
         
-        Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded, DataAccess &access_) :
-        access(&access_), inout(&inout_), blockHeight(blockHeight_), pointer(pointer_) {
-            /* todo-fork: the following check should be active, but requires moving the constructor's definition to the cpp file (hurts performance?)
+        Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded, DataAccess &access_)
+            : access(&access_), inout(&inout_), blockHeight(blockHeight_), pointer(pointer_) {
+            /* the following check should be active, but requires moving the constructor's definition to the cpp file (hurts performance?)
              * should be ok that check is disabled as this constructor is only used by OutputRange, which is single-chain anyway
              */
-            /*
-            if (pointer.chainId != access->chainId) {
+            /* if (pointer.chainId != access->chainId) {
                 throw std::runtime_error("This method currently only supports single-chain access");
-            }
-            */
+            } */
             setSpendingTxIndex(maxTxLoaded);
         }
         

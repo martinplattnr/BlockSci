@@ -19,19 +19,18 @@
 #include <stdexcept>
 
 namespace blocksci {
-    Input::Input(const InputPointer &pointer_, DataAccess &access_) :
-    Input(pointer_,                                                                     // const InputPointer &pointer_
-          access_.getChain().getBlockHeight(pointer_.txNum),                            // BlockHeight blockHeight_
-          access_.getChain().getTx(pointer_.txNum)->getInput(pointer_.inoutNum),        // const Inout &inout_
-          &access_.getChain().getSpentOutputNumbers(pointer_.txNum)[pointer_.inoutNum], // const uint16_t *spentOutputNum_
-          &access_.getChain().getSequenceNumbers(pointer_.txNum)[pointer_.inoutNum],    // const uint32_t *sequenceNum_
-          static_cast<uint32_t>(access_.getChain().txCount()),                          // uint32_t maxTxCount_
-          access_                                                                       // DataAccess &access_
-          ) {
-        // todo-fork: this check should be done before accessing all data in the initialization list
-        if (pointer.chainId != access->chainId) {
+    Input::Input(const InputPointer &pointer_, DataAccess &access_) {
+        if (pointer_.chainId != access_.chainId) {
             throw std::runtime_error("This method currently only supports single-chain access");
         }
+
+        access = &access_;
+        maxTxCount = static_cast<uint32_t>(access_.getChain().txCount());
+        inout = &access_.getChain().getTx(pointer_.txNum)->getInput(pointer_.inoutNum);
+        spentOutputNum = &access_.getChain().getSpentOutputNumbers(pointer_.txNum)[pointer_.inoutNum];
+        sequenceNum = &access_.getChain().getSequenceNumbers(pointer_.txNum)[pointer_.inoutNum];
+        pointer = pointer_;
+        blockHeight = access_.getChain().getBlockHeight(pointer_.txNum);
     }
     
     Transaction Input::transaction() const {

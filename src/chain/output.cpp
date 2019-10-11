@@ -17,12 +17,18 @@
 #include <sstream>
 
 namespace blocksci {
-    Output::Output(const OutputPointer &pointer_, DataAccess &access_) :
-    Output(pointer_, -1, access_.getChain().getTx(pointer_.txNum)->getOutput(pointer_.inoutNum), static_cast<uint32_t>(access_.getChain().txCount()), access_) {
-        // todo-fork: this check should be done before accessing all data in the initialization list
-        if (pointer.chainId != access->chainId) {
+    Output::Output(const OutputPointer &pointer_, DataAccess &access_) {
+        if (pointer_.chainId != access_.chainId) {
             throw std::runtime_error("This method currently only supports single-chain access");
         }
+
+        access = &access_;
+        inout = &access_.getChain().getTx(pointer_.txNum)->getOutput(pointer_.inoutNum);
+        blockHeight = -1;
+        pointer = pointer_;
+        auto maxTxLoaded = static_cast<uint32_t>(access_.getChain().txCount());
+
+        setSpendingTxIndex(maxTxLoaded);
     }
     
     Transaction Output::transaction() const {
