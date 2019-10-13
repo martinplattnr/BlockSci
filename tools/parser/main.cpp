@@ -394,16 +394,29 @@ void updateChain(const filesystem::path &configFilePath, bool fullParse, blocksc
 }
 
 
-void updateChainForkAware(const filesystem::path &configFilePath) {
-    // todo-fork: handle fork parsing here (for every chain, do all steps below upto fork height, copy files, continue parsing root chain etc.
-
+void updateMultipleChains(const filesystem::path &configFilePath) {
     blocksci::DataConfiguration dataConfig = blocksci::loadBlockchainConfig(configFilePath.str(), true, 0);
 
     const blocksci::DataConfiguration* currentDc = &dataConfig.rootDataConfiguration();
 
+
+    if (currentDc->childDataConfiguration == nullptr) {
+        std::cout << "The provided config does not contain any child chains. Please use single-chain parse mode. Exiting." << std::endl;
+        exit(0);
+    }
+
+    bool isInitialParse = false;
+    {
+        blocksci::ChainAccess rootChain{currentDc->chainDirectory(), 0, false};
+        if (rootChain.blockCount() == 0) {
+            std::cout << "Performing initial multi-chain parse" << std::endl;
+            isInitialParse = true;
+        }
+    }
+
     while (currentDc != nullptr) {
-        if (currentDc->childDataConfiguration != nullptr) {
-            // has child chain
+        if (isInitialParse && currentDc->childDataConfiguration != nullptr) {
+            // parse upto height firstForkedBlockHeight - 1
             updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
 
             // todo-fork: replace copy method with something more reliable
@@ -430,7 +443,9 @@ void updateChainForkAware(const filesystem::path &configFilePath) {
             std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/addressDB.txt").c_str());
         }
 
+        // parse upto height maxBlockNum (setting in parser section of config file)
         auto jsonConf = blocksci::loadConfig(currentDc->configPath);
+        // todo-fork: add error message if maxBlockNum < childChain.firstForkedBlockHeight - 1
         blocksci::BlockHeight maxBlockNum = jsonConf.at("parser").at("maxBlockNum");
         updateChain(currentDc->configPath, true, maxBlockNum);
 
@@ -464,7 +479,7 @@ int main(int argc, char * argv[]) {
     //    --data-directory /Users/hkalodner/bitcoin-samp
     //    --coin-directory /Users/hkalodner/Library/Application\ Support/Bitcoin
     
-    enum class mode {generateConfig, update, updateForkAware, updateCore, updateIndexes, updateHashIndex, updateAddressIndex, compactIndexes, help, doctor};
+    enum class mode {generateConfig, update, updateMultiple, updateCore, updateIndexes, updateHashIndex, updateAddressIndex, compactIndexes, help, doctor};
     mode selected = mode::help;
     
     bool enableRPC = false;
@@ -523,7 +538,7 @@ int main(int argc, char * argv[]) {
     
     auto generateConfigCommand = clipp::command("generate-config").set(selected,mode::generateConfig) % "Create new BlockSci configuration";
     auto updateCommand = clipp::command("update").set(selected,mode::update) % "Update all BlockSci data";
-    auto updateForkAwareCommand = clipp::command("update-fork-aware").set(selected,mode::updateForkAware) % "Update all BlockSci data (fork-aware)";
+    auto updateMultipleCommand = clipp::command("update-multiple").set(selected,mode::updateMultiple) % "Update all BlockSci data for multiple related chains";
     auto updateCoreCommand = clipp::command("core-update").set(selected,mode::updateCore) % "Update just the core BlockSci data (excluding indexes)";
     auto indexUpdateCommand = clipp::command("index-update").set(selected,mode::updateIndexes) % "Update indexes to latest chain state";
     auto addressIndexUpdateCommand = clipp::command("address-index-update").set(selected,mode::updateAddressIndex) % "Update address index to latest state";
@@ -534,7 +549,7 @@ int main(int argc, char * argv[]) {
     std::string configFilePathString;
     auto configFileOpt = clipp::value("config file", configFilePathString) % "Path to config file";
     
-    auto commands = (generateConfigCommand, configOptions) | updateCommand | updateForkAwareCommand | updateCoreCommand | indexUpdateCommand | addressIndexUpdateCommand | hashIndexUpdateCommand | compactIndexesCommand | doctorCommand;
+    auto commands = (generateConfigCommand, configOptions) | updateCommand | updateMultipleCommand | updateCoreCommand | indexUpdateCommand | addressIndexUpdateCommand | hashIndexUpdateCommand | compactIndexesCommand | doctorCommand;
     
     auto cli = (configFileOpt, commands);
     
@@ -661,11 +676,12 @@ int main(int argc, char * argv[]) {
             
             break;
         }
-        case mode::updateForkAware: {
-            auto config = getBaseConfig(configFilePath);
-            lockDataDirectory(config);
-            updateChainForkAware(configFilePath);
 
+        case mode::updateMultiple: {
+            auto config = getBaseConfig(configFilePath);
+            // todo-fork: lock all data directories?
+            lockDataDirectory(config);
+            updateMultipleChains(configFilePath);
             unlockDataDirectory(config);
             break;
         }
