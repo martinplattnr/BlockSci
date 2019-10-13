@@ -29,7 +29,7 @@ struct ParserConfigurationBase {
     filesystem::path parserDirectory() const {
         return filesystem::path{dataConfig.chainConfig.dataDirectory}/"parser";
     }
-    // todo-fork: may need refactoring
+
     filesystem::path rootParserDirectory() const {
         return filesystem::path{dataConfig.rootDataConfiguration().chainConfig.dataDirectory}/"parser";
     }

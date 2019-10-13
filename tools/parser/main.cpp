@@ -169,7 +169,6 @@ void rollbackTransactions(blocksci::BlockHeight blockKeepCount, HashIndexCreator
         blockFile.truncate(blockKeepCount);
         AddressWriter(config).rollback(blocksciState);
 
-        // todo-fork: change is just to avoid build failure
         AddressState addressState{config.addressPath(), config.rootAddressPath(), hashDb};
         hashDb.db.rollback(blocksciState.txCount, blocksciState.scriptCounts);
         addressState.reset(blocksciState);

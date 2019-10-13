@@ -47,7 +47,6 @@ namespace blocksci {
          * Directory: chain/
          */
         std::unique_ptr<ChainAccess> chain;
-        // todo-fork: have a map (chainId -> ChainAccess)?
 
         /** Provides access to script data of all address types
          *

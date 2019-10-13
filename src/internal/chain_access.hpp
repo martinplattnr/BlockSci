@@ -157,12 +157,12 @@ namespace blocksci {
             if (maxHeight >= firstForkedBlockHeight && firstForkedBlockHeight > BlockHeight(0)) {
                 auto firstForkedBlock = blockFile[firstForkedBlockHeight];
                 firstForkedTxIndex = firstForkedBlock->firstTxIndex;
-                std::cout << "firstForkedTxIndex = " << firstForkedTxIndex << std::endl;
+                //std::cout << "firstForkedTxIndex = " << firstForkedTxIndex << std::endl;
                 forkInputIndex = 0; // todo-fork
             }
 
             if (maxHeight > BlockHeight(0)) { // todo: change to >=
-                std::cout << "first blockFile access from " << getChainType() << " for height " << static_cast<OffsetType>(maxHeight) - 1 << std::endl;
+                //std::cout << "first blockFile access from " << getChainType() << " for height " << static_cast<OffsetType>(maxHeight) - 1 << std::endl;
                 auto maxLoadedBlock = blockFile[static_cast<OffsetType>(maxHeight) - 1]; // todo: remove - 1
                 // auto maxLoadedBlock = getBlock(maxHeight - 1);
                 lastBlockHash = maxLoadedBlock->hash;
@@ -180,11 +180,13 @@ namespace blocksci {
                 throw std::runtime_error(ss.str());
             }
 
+            /*
             std::cout << "setup(): " << std::endl;
             std::cout << "  - type = " << getChainType() << std::endl;
             std::cout << "  - firstForkedBlockHeight = " << firstForkedBlockHeight << std::endl;
             std::cout << "  - firstForkedTxIndex = " << firstForkedTxIndex << std::endl << std::flush;
             std::cout << std::endl << std::endl;
+            */
         }
 
     public:
