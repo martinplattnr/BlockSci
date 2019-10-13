@@ -295,7 +295,7 @@ namespace blocksci {
             }
             currentBlock--;
 
-            return static_cast<BlockHeight>(blockBegin->height);
+            return static_cast<BlockHeight>(currentBlock->height);
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
