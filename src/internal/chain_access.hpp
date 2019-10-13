@@ -281,27 +281,19 @@ namespace blocksci {
             if (errorOnReorg && txIndex >= _maxLoadedTx) {
                 throw std::out_of_range("Transaction index out of range");
             }
-            auto blockBegin = getBlock(0);
-            //auto blockEnd = getBlock(static_cast<OffsetType>(maxHeight) - 1) + 1;
 
-            // todo-fork: bounds checking
-            while (txIndex >= blockBegin->firstTxIndex) {
-                blockBegin++;
+            auto currentBlock = getBlock(0);
+            while (txIndex >= currentBlock->firstTxIndex) {
+                currentBlock++;
+
+                // if first forked block is reached, get new block pointer that points to the forked chain
+                if (static_cast<BlockHeight>(currentBlock->height) == firstForkedBlockHeight + 1) {
+                    currentBlock = getBlock(firstForkedBlockHeight);
+                }
             }
-            blockBegin--;
+            currentBlock--;
 
             return static_cast<BlockHeight>(blockBegin->height);
-
-            /*
-            blockEnd = getBlock(static_cast<OffsetType>(maxHeight) - 1) + 1;
-            auto i = 5;
-            // this iterator-based approach does not work anymore, as the forked blocks are mapped to another area of the virtual address space
-            auto it = std::upper_bound(blockBegin, blockEnd, txIndex, [](uint32_t index, const RawBlock &b) {
-                return index < b.firstTxIndex;
-            });
-            it--;
-            return static_cast<BlockHeight>(std::distance(blockBegin, it));
-            */
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
