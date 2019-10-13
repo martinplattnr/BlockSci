@@ -36,6 +36,8 @@
 
 #include <cereal/archives/binary.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <sys/resource.h>
@@ -47,6 +49,32 @@
 #include <cassert>
 
 using json = nlohmann::json;
+
+// todo: replace with std::filesystem (requires switching to c++17 standard)
+void recursiveCopy(const boost::filesystem::path &src, const boost::filesystem::path &dst)
+{
+    if (boost::filesystem::is_directory(src)) {
+        if ( ! boost::filesystem::exists(dst)) {
+            boost::filesystem::create_directories(dst);
+        }
+        for (boost::filesystem::directory_entry& item : boost::filesystem::directory_iterator(src)) {
+            recursiveCopy(item.path(), dst/item.path().filename());
+        }
+    }
+    else if (boost::filesystem::is_regular_file(src)) {
+        boost::filesystem::copy(src, dst);
+    }
+    else {
+        throw std::runtime_error(dst.generic_string() + " not dir or file");
+    }
+}
+
+void copyFile(const boost::filesystem::path &src, const boost::filesystem::path &dst) {
+    if (boost::filesystem::is_regular_file(src)) {
+        std::cout << "Copying file " << src << " to " << dst << std::endl;
+        boost::filesystem::copy(src, dst);
+    }
+}
 
 blocksci::State rollbackState(const ParserConfigurationBase &config, blocksci::BlockHeight firstDeletedBlock, uint32_t firstDeletedTxNum) {
     blocksci::State state{
@@ -419,20 +447,27 @@ void updateMultipleChains(const filesystem::path &configFilePath) {
             // parse upto height firstForkedBlockHeight - 1
             updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
 
-            // todo-fork: replace copy method with something more reliable
-            std::cout << "Copy chain/ directory" << std::endl;
-            std::system(("cp -r " + currentDc->chainDirectory().str() + " " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
+            // copy relevant directories/files from the parent chain to the child chain directory
+            std::cout << "Copying parent's chain/ directory to child's chain/ directory" << std::endl;
+            boost::filesystem::path sourceDirectory{currentDc->chainDirectory().str()};
+            boost::filesystem::path destinationDirectory{currentDc->childDataConfiguration->chainDirectory().str()};
+            recursiveCopy(sourceDirectory, destinationDirectory);
 
-            std::cout << "Copy scripts/*header* files" << std::endl;
-            std::cout << "cp -r " + currentDc->scriptsDirectory().str() + "/*header* " + currentDc->childDataConfiguration->scriptsDirectory().str() << std::endl;
-            std::system(("cp -r " + currentDc->scriptsDirectory().str() + "/*header* " + currentDc->childDataConfiguration->scriptsDirectory().str()).c_str());
+            std::cout << "Copying parent's scripts/*header* files to child's script/ directory" << std::endl;
+            blocksci::for_each(blocksci::DedupAddressType::all(), [&](auto tag) {
+                boost::filesystem::path sourceFile{currentDc->scriptsDirectory().str() + "/" + std::string{blocksci::dedupAddressName(tag)} + "_header.dat"};
+                boost::filesystem::path destinationFile{currentDc->childDataConfiguration->scriptsDirectory().str() + "/" + std::string{blocksci::dedupAddressName(tag)} + "_header.dat"};
+                copyFile(sourceFile, destinationFile);
+            });
 
-            std::cout << "Copy parser/ directory" << std::endl;
-            std::system(("cp -r " + currentDc->chainConfig.dataDirectory.str() + "/parser " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str()).c_str());
+            std::cout << "Copying parent's parser/ directory to child's parser/ directory" << std::endl;
+            sourceDirectory = currentDc->chainConfig.dataDirectory.str() + "/parser";
+            destinationDirectory = currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser";
+            recursiveCopy(sourceDirectory, destinationDirectory);
 
             // parser/blockList.dat needs to be removed to ensure a reparse of the node data of the child chain
             std::cout << "Remove parser/blockList.dat" << std::endl;
-            std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/blockList.dat").c_str());
+            boost::filesystem::remove(boost::filesystem::path{currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/blockList.dat"});
 
             /* parser/addressDB.txt needs to be removed to ensure that all entries in the AddressIndex DB are duplicated
              * for the chainId of the child chain, that is parsed afterwards.
@@ -440,7 +475,7 @@ void updateMultipleChains(const filesystem::path &configFilePath) {
              * for every child chain by looping config.dataConfig.childDataConfiguration recursively.
              */
             std::cout << "Remove parser/addressDB.txt" << std::endl;
-            std::system(("rm " + currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/addressDB.txt").c_str());
+            boost::filesystem::remove(boost::filesystem::path{currentDc->childDataConfiguration->chainConfig.dataDirectory.str() + "/parser/addressDB.txt"});
         }
 
         // parse upto height maxBlockNum (setting in parser section of config file)
