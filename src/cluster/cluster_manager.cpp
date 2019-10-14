@@ -221,8 +221,8 @@ namespace blocksci {
 
         for (auto chain : chains) {
             logfile.open ("cluster_log_" + chain.getAccess().config.chainConfig.coinName + ".txt");
-            // todo-fork: add option to enable non-parallel (sequential) mode, eg. thread count = 1
-            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+            // todo-fork: revert threads to default setting
+            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
             logfile.close();
         }
 
