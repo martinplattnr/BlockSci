@@ -80,11 +80,11 @@ namespace blocksci {
         };
 
         iterator begin() const {
-            return iterator{inouts, height, txIndex, 0, maxTxLoaded, access, getChainId(access)};
+            return iterator{inouts, height, txIndex, 0, maxTxLoaded, access, InputRange::getChainId(access)};
         }
 
         iterator end() const {
-            return iterator{nullptr, height, txIndex, maxOutputNum, maxTxLoaded, nullptr, getChainId(access)};
+            return iterator{nullptr, height, txIndex, maxOutputNum, maxTxLoaded, nullptr, InputRange::getChainId(access)};
         }
 
         uint16_t size() const {
@@ -92,7 +92,7 @@ namespace blocksci {
         }
 
         Output operator[](uint16_t outputNum) {
-            return {{getChainId(access), txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access};
+            return {{InputRange::getChainId(access), txIndex, outputNum}, height, inouts[outputNum], maxTxLoaded, *access};
         }
     };
     

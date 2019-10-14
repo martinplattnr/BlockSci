@@ -6,7 +6,7 @@
 #include <internal/data_access.hpp>
 
 namespace blocksci {
-    ChainId::Enum getChainId(DataAccess* da) {
+    ChainId::Enum InputRange::getChainId(DataAccess* da) {
         return da->chainId;
     }
 }

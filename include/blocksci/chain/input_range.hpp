@@ -15,11 +15,6 @@
 #include <range/v3/range_concepts.hpp>
 
 namespace blocksci {
-    // todo-fork: reconsider (eg. in which file should this function be declared/defined?)
-    // workaround function to retrieve the chainId from DataAccess. this is only possible from a .cpp file,
-    // as the DataAccess class is internal and thus, not usable in public hpp files.
-    ChainId::Enum getChainId(DataAccess* da);
-
     class ChainAccess;
     class DataAccess;
     
@@ -46,6 +41,11 @@ namespace blocksci {
         uint32_t maxTxCount;
 
         DataAccess *access = nullptr;
+
+        // todo-fork: reconsider (eg. in which file should this function be declared/defined?)
+        // workaround function to retrieve the chainId from DataAccess. this is only possible from a .cpp file,
+        // as the DataAccess class is internal and thus, not usable in public hpp files.
+        static ChainId::Enum getChainId(DataAccess* da);
 
         struct iterator {
             using self_type = iterator;
