@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.5)
+project(blocksci_sample_data_export)
+
+add_executable(blocksci_sample_data_export main.cpp)
+
+target_link_libraries( blocksci_sample_data_export blocksci blocksci_internal)
+target_link_libraries( blocksci_sample_data_export clipp)
