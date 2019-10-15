@@ -215,6 +215,12 @@ namespace blocksci {
                 }
             }
         } else {
+            /* todo: output.getBlockHeight() fails* if a maxBlockNum parameter is used when creating the Blockchain object and maxLoadedTx < output.pointer.txNum
+             * * throwing method is ChainAccess.getBlockHeight()
+             * possible solution:
+             * - add maxTxNum parameter to Address.getOutputPointers(), to return only relevant output-pointers
+             * (see partial implementation in branch feature/getoutputpointers-respect-maxloadedtx)
+             */
             RANGES_FOR(auto output, t) {
                 if (output.getBlockHeight() <= height && (!output.isSpent() || output.getSpendingTx()->getBlockHeight() > height)) {
                     value += output.getValue();

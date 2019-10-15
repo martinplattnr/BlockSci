@@ -33,7 +33,12 @@
 #include <sstream>
 
 namespace blocksci {
-    
+
+    /* todo: shouldn't this method respect the maxLoadedTx setting of DataAccess->scripts->txCount()?
+     * this is relevant when the Blockchain object is created with a user-defined maxBlockNum parameter
+     * possible solution: add bool onlyUptoMaxLoadedTx parameter and pass maxTxNum to AddressIndex.getOutputPointers()
+     * (see partial implementation in branch feature/getoutputpointers-respect-maxloadedtx)
+     */
     ranges::any_view<OutputPointer> Address::getOutputPointers() const {
         return access->getAddressIndex().getOutputPointers(access->chainId, *this)
         | ranges::view::transform([](const InoutPointer &pointer) { return OutputPointer(pointer.chainId, pointer.txNum, pointer.inoutNum); });
