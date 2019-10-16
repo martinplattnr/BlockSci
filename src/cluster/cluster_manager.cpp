@@ -375,6 +375,13 @@ namespace blocksci {
 
         auto &scripts = chains[0].getAccess().getScripts();
         size_t totalScriptCount = scripts.totalAddressCount();
+
+        auto rootScriptsDirectory = chains[0].getAccess().config.rootScriptsDirectory();
+        for (auto chain : chains) {
+            if (chain.getAccess().config.rootScriptsDirectory() != rootScriptsDirectory) {
+                throw std::invalid_argument("The provided chains do not belong to the same root chain.");
+            }
+        }
         
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {
