@@ -163,13 +163,20 @@ namespace blocksci {
     
     void linkScripthashNested(DataAccess &access, AddressDisjointSets &ds) {
         auto scriptHashCount = access.getScripts().scriptCount(DedupAddressType::SCRIPTHASH);
-        
-        segmentWork(1, scriptHashCount + 1, 8, [&ds, &access](uint32_t index) {
+
+        auto progressBar = makeProgressBar(scriptHashCount / 8, [=]() {});
+        uint32_t maxScriptNumOfFirstThread = scriptHashCount / 8;
+        uint32_t scriptCountOfFirstThread = 0;
+        segmentWork(1, scriptHashCount + 1, 8, [&ds, &access, &progressBar, &maxScriptNumOfFirstThread, &scriptCountOfFirstThread](uint32_t index) {
             Address pointer(index, AddressType::SCRIPTHASH, access);
             script::ScriptHash scripthash{index, access};
             auto wrappedAddress = scripthash.getWrappedAddress();
             if (wrappedAddress) {
                 ds.link_addresses(pointer, *wrappedAddress);
+            }
+            if (index < maxScriptNumOfFirstThread) {
+                scriptCountOfFirstThread++;
+                progressBar.update(scriptCountOfFirstThread);
             }
         });
     }
@@ -177,11 +184,13 @@ namespace blocksci {
     /** returns a vector that stores the clusterid for every scriptNum, indexed by scriptNum */
     template <typename ChangeFunc>
     std::vector<uint32_t> createClusters(std::vector<BlockRange> &chains, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
-        
+
+        std::cout << "Preparing data structure for clustering" << std::endl;
         AddressDisjointSets ds(totalScriptCount, std::move(addressStarts));
         
         auto &access = chains[0].getAccess();
-        
+
+        std::cout << "Linking nested script-hash addresses" << std::endl;
         linkScripthashNested(access, ds);
 
         // todo: add user option to log merge events or remove this feature entirely
@@ -220,11 +229,14 @@ namespace blocksci {
         };
 
         for (auto chain : chains) {
+            std::cout << "Clustering using " << chain.getAccess().config.chainConfig.coinName << " data" << std::endl;
             logfile.open ("cluster_log_" + chain.getAccess().config.chainConfig.coinName + ".txt");
             // todo-fork: revert threads to default setting
             chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
             logfile.close();
         }
+
+        std::cout << "Performing post-processing: resolving cluster nums for every address" << std::endl;
 
         // this step is not necessary, but can be processed in parallel and speeds up the find() operations in code below
         ds.resolveAll();
@@ -239,9 +251,13 @@ namespace blocksci {
 
     /** count number of clusters */
     uint32_t remapClusterIds(std::vector<uint32_t> &parents) {
+        std::cout << "Performing post-processing: remapping cluster IDs" << std::endl;
+        auto progressBar = makeProgressBar(parents.size(), [=]() {});
+
         uint32_t placeholder = std::numeric_limits<uint32_t>::max();
         std::vector<uint32_t> newClusterIds(parents.size(), placeholder);
         uint32_t clusterCount = 0;
+        uint32_t parentCount = 0;
         for (uint32_t &clusterNum : parents) {
             uint32_t &clusterId = newClusterIds[clusterNum];
             if (clusterId == placeholder) {
@@ -249,6 +265,9 @@ namespace blocksci {
                 clusterCount++;
             }
             clusterNum = clusterId;
+
+            parentCount++;
+            progressBar.update(parentCount);
         }
         
         return clusterCount;
@@ -331,6 +350,8 @@ namespace blocksci {
     }
     
     void serializeClusterData(const ScriptAccess &scripts, const std::string &outputPath, const std::vector<uint32_t> &parent, const std::unordered_map<DedupAddressType::Enum, uint32_t> &scriptStarts, uint32_t clusterCount) {
+        std::cout << "Saving cluster data to files" << std::endl;
+
         auto outputLocation = filesystem::path{outputPath};
         std::string offsetFile = ClusterAccess::offsetFilePath(outputPath);
         std::string addressesFile = ClusterAccess::addressesFilePath(outputPath);
@@ -372,6 +393,7 @@ namespace blocksci {
         prepareClusterDataLocation(outputPath, overwrite);
         
         // Perform clustering
+        std::cout << "Creating clustering based on " << chains.size() << " chain(s)" << std::endl << std::endl;
 
         auto &scripts = chains[0].getAccess().getScripts();
         size_t totalScriptCount = scripts.totalAddressCount();
