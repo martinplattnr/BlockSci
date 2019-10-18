@@ -63,6 +63,7 @@ struct AddAddressMethods {
         }, "Return the number of transactions where this address was an input");
         func(property_tag, "first_tx", &AnyScript::getFirstTransaction, "Get the first transaction that was sent to a type equivalent address");
         func(property_tag, "revealed_tx", &AnyScript::getTransactionRevealed, "The transaction where a type equivalent address was first revealed");
+        func(property_tag, "has_been_seen", &AnyScript::hasBeenSeen, "Check if a type equivalent address has ever been seen (only relevant in multi-chain mode, otherwise always True)");
         func(property_tag, "has_been_spent", &AnyScript::hasBeenSpent, "Check if a type equivalent address has ever been spent");
         func(property_tag, "outs", +[](AnyScript &address) -> RawIterator<Output> {
             return address.getOutputs();
