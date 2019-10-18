@@ -50,7 +50,6 @@ void init_cluster_manager(pybind11::module &s) {
     .def("total_without_self_churn", totalOutWithoutSelfChurn)
     ;
 
-    // todo: loading an existing clustering is not covered in the current documentation
     py::class_<ClusterManager>(s, "ClusterManager", "Class managing the cluster dat")
     .def(py::init([](std::string arg, blocksci::Blockchain &chain) {
        return ClusterManager(arg, chain.getAccess());

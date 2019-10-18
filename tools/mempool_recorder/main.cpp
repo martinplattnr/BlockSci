@@ -41,6 +41,8 @@ using namespace std::chrono;
 static volatile sig_atomic_t done = 0;
 static bool verbose = false;
 
+// todo-fork: check if mempool recorder is compatible with multiple chains
+
 void term(int)
 {
     done = 1;
