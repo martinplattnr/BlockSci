@@ -205,12 +205,6 @@ void unlockDataDirectory(const ParserConfigurationBase &config) {
     unlockDataDirectory(config.dataConfig);
 }
 
-void resetDataDirectory(const ParserConfigurationBase &config) {
-    // todo-fork: remove before release
-    std::cout << "Resetting data directory." << std::endl;
-    std::system(("exec rm -r " + config.dataConfig.chainConfig.dataDirectory.str() + "/*").c_str());
-}
-
 template <typename BlockType>
 struct ChainUpdateInfo {
     std::vector<BlockType> blocksToAdd;
@@ -730,7 +724,6 @@ int main(int argc, char * argv[]) {
             std::cout << std::endl;
 
             auto config = getBaseConfig(configFilePath);
-            resetDataDirectory(config);
             lockDataDirectory(config);
             updateChain(configFilePath, selected == mode::update);
             unlockDataDirectory(config);
