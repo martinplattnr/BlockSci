@@ -30,7 +30,7 @@ namespace blocksci {
         ChainConfiguration chainConfig = jsonConf.at("chainConfig");
 
         // todo-fork: refactor creation of DataConfiguration, shared pointer assignment is a mess
-        if (chainConfig.parentChainConfigPath.length()) {
+        if (chainConfig.parentChainConfigPath.str().length()) {
             DataConfiguration dc{configPath, chainConfig, errorOnReorg, blocksIgnored, std::make_shared<DataConfiguration>(loadBlockchainConfig(chainConfig.parentChainConfigPath.str(), errorOnReorg, blocksIgnored))};
             dc.parentDataConfiguration->childDataConfiguration = std::make_shared<DataConfiguration>(dc);
             return dc;
