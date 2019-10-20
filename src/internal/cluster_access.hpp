@@ -84,11 +84,16 @@ namespace blocksci {
             ss << dedupAddressName(type) << "_cluster_index.dat";
             return (base/ss.str()).str();
         }
-        
-        uint32_t getClusterNum(const RawAddress &address) const {
+
+        ranges::optional<uint32_t> getClusterNum(const RawAddress &address) const {
             static auto table = blocksci::make_dynamic_table<DedupAddressType, ClusterNumFunctor>();
             auto index = static_cast<size_t>(dedupType(address.type));
-            return table.at(index)(this, address.scriptNum);
+            auto clusterNum = table.at(index)(this, address.scriptNum);
+            if (clusterNum == std::numeric_limits<uint32_t>::max()) {
+                return clusterNum;
+            }
+            // when using multi-chain clustering with reduceToChain, the given address may not be found in the index(es)
+            return ranges::nullopt;
         }
         
         uint32_t getClusterSize(uint32_t clusterNum) const {

@@ -32,12 +32,13 @@ int64_t totalOutWithoutSelfChurn(const blocksci::Block &block, blocksci::Cluster
         std::set<uint32_t> inputClusters;
         RANGES_FOR(auto input, tx.inputs()) {
             auto cluster = manager.getCluster(input.getAddress());
-            if (cluster.getTypeEquivSize() < 30000) {
-                inputClusters.insert(cluster.clusterNum);
+            if (cluster && cluster->getTypeEquivSize() < 30000) {
+                inputClusters.insert(cluster->clusterNum);
             }
         }
         RANGES_FOR(auto output, tx.outputs()) {
-            if ((!output.isSpent() || output.getSpendingTx()->getBlockHeight() - block.height() > 3) && inputClusters.find(manager.getCluster(output.getAddress()).clusterNum) == inputClusters.end()) {
+            auto cluster = manager.getCluster(output.getAddress());
+            if ((!output.isSpent() || output.getSpendingTx()->getBlockHeight() - block.height() > 3) && cluster && inputClusters.find(cluster->clusterNum) == inputClusters.end()) {
                 total += output.getValue();
             }
         }

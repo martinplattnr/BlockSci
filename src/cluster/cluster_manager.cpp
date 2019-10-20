@@ -89,9 +89,13 @@ namespace blocksci {
     ClusterManager &ClusterManager::operator=(ClusterManager && other) = default;
     
     ClusterManager::~ClusterManager() = default;
-    
-    Cluster ClusterManager::getCluster(const Address &address) const {
-        return Cluster(access->getClusterNum(RawAddress{address.scriptNum, address.type}), *access);
+
+    ranges::optional<Cluster> ClusterManager::getCluster(const Address &address) const {
+        auto clusterNum = access->getClusterNum(RawAddress{address.scriptNum, address.type});
+        if (clusterNum) {
+            return Cluster(*clusterNum, *access);
+        }
+        return ranges::nullopt;
     }
     
     ranges::any_view<Cluster, ranges::category::random_access | ranges::category::sized> ClusterManager::getClusters() const {
