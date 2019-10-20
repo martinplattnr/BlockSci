@@ -50,9 +50,6 @@ namespace blocksci {
         //std::vector<std::string> forkDataDirectories;
         filesystem::path parentChainConfigPath;
 
-        // todo-fork: not needed?
-        // std::shared_ptr<ChainConfiguration> parentChainConfiguration;
-
         // todo-fork: handle fork height as a parameter (json and static methods below)
         BlockHeight firstForkedBlockHeight;
         

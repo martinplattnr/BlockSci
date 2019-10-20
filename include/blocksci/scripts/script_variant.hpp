@@ -91,7 +91,6 @@ namespace blocksci {
             return mpark::visit([&](auto &scriptAddress) { return scriptAddress.hasBeenSpent(); }, wrapped);
         }
 
-        // todo-fork: add to python interface
         bool hasBeenSeen() const {
             return mpark::visit([&](auto &scriptAddress) { return scriptAddress.hasBeenSeen(); }, wrapped);
         }

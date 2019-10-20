@@ -81,7 +81,7 @@ namespace blocksci {
             throw std::runtime_error("unknown chain id");
         }
 
-        static ChainId::Enum get(std::string name) {
+        static ChainId::Enum get(const std::string& name) {
             if (name == "unspecified") {
                 return ChainId::UNSPECIFIED;
             }
