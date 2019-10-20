@@ -231,8 +231,7 @@ namespace blocksci {
         for (auto chain : chains) {
             std::cout << "Clustering using " << chain.getAccess().config.chainConfig.coinName << " data" << std::endl;
             logfile.open ("cluster_log_" + chain.getAccess().config.chainConfig.coinName + ".txt");
-            // todo-fork: revert threads to default setting
-            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
+            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
             logfile.close();
         }
 
@@ -249,32 +248,62 @@ namespace blocksci {
         return parents;
     }
 
-    /** count number of clusters */
-    uint32_t remapClusterIds(std::vector<uint32_t> &parents) {
-        std::cout << "Performing post-processing: remapping cluster IDs" << std::endl;
+    /** remaps cluster IDs, count number of clusters/addresses and return (addressCount, clusterCount) tuple */
+    std::tuple<uint32_t, uint32_t> remapClusterIds(std::vector<uint32_t> &parents, std::map<uint32_t, DedupAddressType::Enum> typeIndexes, ranges::optional<const BlockRange&> reduceToChain) {
+        std::cout << "Performing post-processing: remapping cluster IDs";
+        if (reduceToChain) {
+            std::cout << " and reducing to chain " << reduceToChain->getAccess().config.chainConfig.coinName;
+        }
+        std::cout << std::endl;
+
         auto progressBar = makeProgressBar(parents.size(), [=]() {});
 
         uint32_t placeholder = std::numeric_limits<uint32_t>::max();
         std::vector<uint32_t> newClusterIds(parents.size(), placeholder);
-        uint32_t clusterCount = 0;
-        uint32_t parentCount = 0;
-        for (uint32_t &clusterNum : parents) {
-            uint32_t &clusterId = newClusterIds[clusterNum];
-            if (clusterId == placeholder) {
-                clusterId = clusterCount;
-                clusterCount++;
-            }
-            clusterNum = clusterId;
 
-            parentCount++;
-            progressBar.update(parentCount);
+        uint32_t addressCount = 0;
+        uint32_t clusterCount = 0;
+        uint32_t parentIndex = 0;
+        uint32_t excludedAddresses = 0;
+        bool seenAddress = false;
+        for (uint32_t &clusterNum : parents) {
+            if (reduceToChain) {
+                // if reduceToChain is active, check if current address hasBeenSeen on the chain to reduce to
+                auto it = typeIndexes.upper_bound(parentIndex);
+                it--;
+                uint32_t addressNum = parentIndex - it->first + 1;
+                auto addressType = it->second;
+                seenAddress = reduceToChain->getAccess().scripts->getScriptHeader(addressNum, addressType)->hasBeenSeen();
+            }
+
+            if ( ! reduceToChain || seenAddress) {
+                addressCount++;
+                uint32_t &clusterId = newClusterIds[clusterNum];
+                if (clusterId == placeholder) {
+                    clusterId = clusterCount;
+                    clusterCount++;
+                }
+                clusterNum = clusterId;
+            }
+            else {
+                // reducing to single chain is active and address has not been seen -> exclude address by setting clusterNum in parents to max(uint32_t)
+                clusterNum = std::numeric_limits<uint32_t>::max();
+                excludedAddresses++;
+            }
+
+            parentIndex++;
+            progressBar.update(parentIndex);
         }
+
+        std::cout.setf(std::ios::fixed,std::ios::floatfield);
+        std::cout.precision(2);
+        std::cout << std::endl << "Reduce result: excluded " << excludedAddresses << " out of " << parents.size() << " addresses (" << (excludedAddresses / parents.size() * 100) << "%)" << std::endl;
         
-        return clusterCount;
+        return std::make_tuple(addressCount, clusterCount);
     }
     
-    void recordOrderedAddresses(const std::vector<uint32_t> &parent, std::vector<uint32_t> &clusterPositions, const std::unordered_map<DedupAddressType::Enum, uint32_t> &scriptStarts, std::ofstream &clusterAddressesFile) {
-        
+    void recordOrderedAddresses(const std::vector<uint32_t> &parent, std::vector<uint32_t> &clusterPositions, const std::unordered_map<DedupAddressType::Enum, uint32_t> &scriptStarts, std::ofstream &clusterAddressesFile, uint32_t addressCount) {
+
         std::map<uint32_t, DedupAddressType::Enum> typeIndexes;
         for (auto &pair : scriptStarts) {
             auto it = typeIndexes.find(pair.second);
@@ -287,9 +316,14 @@ namespace blocksci {
         }
         
         std::vector<DedupAddress> orderedScripts;
-        orderedScripts.resize(parent.size());
+        orderedScripts.resize(addressCount);
         
         for (uint32_t i = 0; i < parent.size(); i++) {
+            if (parent[i] == std::numeric_limits<uint32_t>::max()) {
+                // address was excluded during reducing to single chain -> skip address
+                continue;
+            }
+
             uint32_t &j = clusterPositions[parent[i]];
             auto it = typeIndexes.upper_bound(i);
             it--;
@@ -349,7 +383,7 @@ namespace blocksci {
         }
     }
     
-    void serializeClusterData(const ScriptAccess &scripts, const std::string &outputPath, const std::vector<uint32_t> &parent, const std::unordered_map<DedupAddressType::Enum, uint32_t> &scriptStarts, uint32_t clusterCount) {
+    void serializeClusterData(const ScriptAccess &scripts, const std::string &outputPath, const std::vector<uint32_t> &parent, const std::unordered_map<DedupAddressType::Enum, uint32_t> &scriptStarts, uint32_t addressCount, uint32_t clusterCount) {
         std::cout << "Saving cluster data to files" << std::endl;
 
         auto outputLocation = filesystem::path{outputPath};
@@ -365,14 +399,16 @@ namespace blocksci {
         std::vector<uint32_t> clusterPositions;
         clusterPositions.resize(clusterCount + 1);
         for (auto parentId : parent) {
-            clusterPositions[parentId + 1]++;
+            if (parentId != std::numeric_limits<uint32_t>::max()) {
+                clusterPositions[parentId + 1]++;
+            }
         }
         
         for (size_t i = 1; i < clusterPositions.size(); i++) {
             clusterPositions[i] += clusterPositions[i-1];
         }
         std::ofstream clusterAddressesFile(addressesFile, std::ios::binary);
-        auto recordOrdered = std::async(std::launch::async, recordOrderedAddresses, parent, std::ref(clusterPositions), scriptStarts, std::ref(clusterAddressesFile));
+        auto recordOrdered = std::async(std::launch::async, recordOrderedAddresses, parent, std::ref(clusterPositions), scriptStarts, std::ref(clusterAddressesFile), addressCount);
         
         segmentWork(0, DedupAddressType::size, DedupAddressType::size, [&](uint32_t index) {
             auto type = static_cast<DedupAddressType::Enum>(index);
@@ -387,23 +423,48 @@ namespace blocksci {
         std::ofstream clusterOffsetFile(offsetFile, std::ios::binary);
         clusterOffsetFile.write(reinterpret_cast<char *>(clusterPositions.data()), static_cast<long>(sizeof(uint32_t) * clusterPositions.size()));
     }
+
+    ranges::optional<const BlockRange&> getReduceToChain(std::vector<BlockRange> &chains, ChainId::Enum reduceTo) {
+        if (reduceTo != ChainId::UNSPECIFIED) {
+            for (auto &chain : chains) {
+                if (chain.getAccess().config.chainConfig.chainId == reduceTo) {
+                    return chain;
+                }
+            }
+            throw std::runtime_error("The reduce chain ID was not found in the given chains");
+        }
+        return ranges::nullopt;
+    }
     
     template <typename ChangeFunc>
-    ClusterManager createClusteringImpl(std::vector<BlockRange> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager createClusteringImpl(std::vector<BlockRange> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceToChainId, bool ignoreCoinJoin) {
         prepareClusterDataLocation(outputPath, overwrite);
         
         // Perform clustering
-        std::cout << "Creating clustering based on " << chains.size() << " chain(s)" << std::endl << std::endl;
+        if (chains.size() == 1) {
+            std::cout << "Creating single-chain clustering" << std::endl;
+        }
+        else {
+            std::cout << "Creating " << (reduceToChainId == ChainId::UNSPECIFIED ? "multi-chain" : ChainId::getName(reduceToChainId)) << " clustering based on " << chains.size() << " chain(s)" << std::endl << std::endl;
+        }
 
-        auto &scripts = chains[0].getAccess().getScripts();
+        auto &rootChain = chains[0];
+
+        if (chains.size() > 1 && rootChain.getAccess().config.parentDataConfiguration != nullptr) {
+            throw std::invalid_argument("The first provided chain must be a root chain.");
+        }
+
+        auto &scripts = rootChain.getAccess().getScripts();
         size_t totalScriptCount = scripts.totalAddressCount();
 
-        auto rootScriptsDirectory = chains[0].getAccess().config.rootScriptsDirectory();
-        for (auto chain : chains) {
+        auto rootScriptsDirectory = rootChain.getAccess().config.rootScriptsDirectory();
+        for (auto &chain : chains) {
             if (chain.getAccess().config.rootScriptsDirectory() != rootScriptsDirectory) {
                 throw std::invalid_argument("The provided chains do not belong to the same root chain.");
             }
         }
+
+        auto reduceToChain = getReduceToChain(chains, reduceToChainId);
         
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {
@@ -416,26 +477,41 @@ namespace blocksci {
             }
         }
 
+        std::map<uint32_t, DedupAddressType::Enum> typeIndexes;
+        for (auto &pair : scriptStarts) {
+            auto it = typeIndexes.find(pair.second);
+            if(it != typeIndexes.end()) {
+                // If an address type is not used, skip to the next one
+                it->second = std::max(it->second, pair.first);
+            } else {
+                typeIndexes[pair.second] = pair.first;
+            }
+        }
+
         auto parent = createClusters(chains, scriptStarts, static_cast<uint32_t>(totalScriptCount), std::forward<ChangeFunc>(changeHeuristic), ignoreCoinJoin);
-        uint32_t clusterCount = remapClusterIds(parent);
-        serializeClusterData(scripts, outputPath, parent, scriptStarts, clusterCount);
+        uint32_t addressCount, clusterCount;
+        std::tie(addressCount, clusterCount) = remapClusterIds(parent, typeIndexes, reduceToChain);
+        serializeClusterData(scripts, outputPath, parent, scriptStarts, addressCount, clusterCount);
+
+        std::cout << "Finished clustering with " << addressCount << " addresses in " << clusterCount << " clusters" << std::endl;
+
         return {filesystem::path{outputPath}.str(), chains[0].getAccess()};
     }
     
-    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
         
         auto changeHeuristicL = [&changeHeuristic](const Transaction &tx) -> ranges::any_view<Output> {
             return changeHeuristic(tx);
         };
         
-        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, ignoreCoinJoin);
+        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
     
-    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
-        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, ignoreCoinJoin);
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
+        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 
-    ClusterManager ClusterManager::createClustering(BlockRange &chain, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(BlockRange &chain, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
 
         auto changeHeuristicL = [&changeHeuristic](const Transaction &tx) -> ranges::any_view<Output> {
             return changeHeuristic(tx);
@@ -444,13 +520,13 @@ namespace blocksci {
         std::vector<BlockRange> chains;
         chains.push_back(chain);
 
-        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, ignoreCoinJoin);
+        return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 
-    ClusterManager ClusterManager::createClustering(BlockRange &chain, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(BlockRange &chain, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
         std::vector<BlockRange> chains;
         chains.push_back(chain);
-        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, ignoreCoinJoin);
+        return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 } // namespace blocksci
 

@@ -84,6 +84,14 @@ namespace blocksci {
             }
         }
 
+        bool hasBeenSeen() const {
+            return txFirstSeen != std::numeric_limits<uint32_t>::max();
+        }
+
+        bool hasBeenSpent() const {
+            return txFirstSpent != std::numeric_limits<uint32_t>::max();
+        }
+
         bool seenTopLevel(blocksci::AddressType::Enum type) const {
             return typesSeen & (1u << (static_cast<uint32_t>(type) * 2 + 1));
         }
