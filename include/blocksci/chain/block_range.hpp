@@ -202,7 +202,7 @@ namespace blocksci {
         
         Slice sl;
         
-        DataAccess &getAccess() { return *access; }
+        DataAccess &getAccess() const { return *access; }
         
     private:
         DataAccess *access;
