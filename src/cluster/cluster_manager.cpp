@@ -187,12 +187,12 @@ namespace blocksci {
 
     /** returns a vector that stores the clusterid for every scriptNum, indexed by scriptNum */
     template <typename ChangeFunc>
-    std::vector<uint32_t> createClusters(std::vector<BlockRange> &chains, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
+    std::vector<uint32_t> createClusters(std::vector<BlockRange*> &chains, std::unordered_map<DedupAddressType::Enum, uint32_t> addressStarts, uint32_t totalScriptCount, ChangeFunc && changeHeuristic, bool ignoreCoinJoin) {
 
         std::cout << "Preparing data structure for clustering" << std::endl;
         AddressDisjointSets ds(totalScriptCount, std::move(addressStarts));
         
-        auto &access = chains[0].getAccess();
+        auto &access = chains[0]->getAccess();
 
         std::cout << "Linking nested script-hash addresses" << std::endl;
         linkScripthashNested(access, ds);
@@ -201,7 +201,7 @@ namespace blocksci {
         std::ofstream logfile;
 
         auto extract = [&](const BlockRange &blocks, int threadNum) {
-            auto progressThread = static_cast<int>(0); // todo: revert, temporary change to show progress bar if there is just 1 thread
+            auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
             if (threadNum != progressThread) {
                 progressBar.setSilent();
@@ -232,10 +232,10 @@ namespace blocksci {
             return 0;
         };
 
-        for (auto chain : chains) {
-            std::cout << "Clustering using " << chain.getAccess().config.chainConfig.coinName << " data" << std::endl;
-            logfile.open ("cluster_log_" + chain.getAccess().config.chainConfig.coinName + ".txt");
-            chain.mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+        for (auto &chain : chains) {
+            std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data" << std::endl;
+            logfile.open ("cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+            chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
             logfile.close();
         }
 
@@ -253,9 +253,9 @@ namespace blocksci {
     }
 
     /** remaps cluster IDs, count number of clusters/addresses and return (addressCount, clusterCount) tuple */
-    std::tuple<uint32_t, uint32_t> remapClusterIds(std::vector<uint32_t> &parents, std::map<uint32_t, DedupAddressType::Enum> typeIndexes, ranges::optional<const BlockRange&> reduceToChain) {
+    std::tuple<uint32_t, uint32_t> remapClusterIds(std::vector<uint32_t> &parents, std::map<uint32_t, DedupAddressType::Enum> typeIndexes, const BlockRange* reduceToChain) {
         std::cout << "Performing post-processing: remapping cluster IDs";
-        if (reduceToChain) {
+        if (reduceToChain != nullptr) {
             std::cout << " and reducing to chain " << reduceToChain->getAccess().config.chainConfig.coinName;
         }
         std::cout << std::endl;
@@ -271,7 +271,7 @@ namespace blocksci {
         uint32_t excludedAddresses = 0;
         bool seenAddress = false;
         for (uint32_t &clusterNum : parents) {
-            if (reduceToChain) {
+            if (reduceToChain != nullptr) {
                 // if reduceToChain is active, check if current address hasBeenSeen on the chain to reduce to
                 auto it = typeIndexes.upper_bound(parentIndex);
                 it--;
@@ -280,7 +280,7 @@ namespace blocksci {
                 seenAddress = reduceToChain->getAccess().scripts->getScriptHeader(addressNum, addressType)->hasBeenSeen();
             }
 
-            if ( ! reduceToChain || seenAddress) {
+            if ( reduceToChain == nullptr || seenAddress) {
                 addressCount++;
                 uint32_t &clusterId = newClusterIds[clusterNum];
                 if (clusterId == placeholder) {
@@ -428,20 +428,20 @@ namespace blocksci {
         clusterOffsetFile.write(reinterpret_cast<char *>(clusterPositions.data()), static_cast<long>(sizeof(uint32_t) * clusterPositions.size()));
     }
 
-    ranges::optional<const BlockRange&> getReduceToChain(std::vector<BlockRange> &chains, ChainId::Enum reduceTo) {
+    const BlockRange* getReduceToChain(std::vector<BlockRange*> &chains, ChainId::Enum reduceTo) {
         if (reduceTo != ChainId::UNSPECIFIED) {
             for (auto &chain : chains) {
-                if (chain.getAccess().config.chainConfig.chainId == reduceTo) {
+                if (chain->getAccess().config.chainConfig.chainId == reduceTo) {
                     return chain;
                 }
             }
             throw std::runtime_error("The reduce chain ID was not found in the given chains");
         }
-        return ranges::nullopt;
+        return nullptr;
     }
     
     template <typename ChangeFunc>
-    ClusterManager createClusteringImpl(std::vector<BlockRange> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceToChainId, bool ignoreCoinJoin) {
+    ClusterManager createClusteringImpl(std::vector<BlockRange*> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceToChainId, bool ignoreCoinJoin) {
         prepareClusterDataLocation(outputPath, overwrite);
         
         // Perform clustering
@@ -449,27 +449,25 @@ namespace blocksci {
             std::cout << "Creating single-chain clustering" << std::endl;
         }
         else {
-            std::cout << "Creating " << (reduceToChainId == ChainId::UNSPECIFIED ? "multi-chain" : ChainId::getName(reduceToChainId)) << " clustering based on " << chains.size() << " chain(s)" << std::endl << std::endl;
+            std::cout << "Creating multi-chain clustering based on " << chains.size() << " chain(s)" << (reduceToChainId == ChainId::UNSPECIFIED ? "" : ", reduced to addresses seen in " + ChainId::getName(reduceToChainId)) << std::endl << std::endl;
         }
 
-        auto &rootChain = chains[0];
+        BlockRange* rootChain = chains[0];
 
-        if (chains.size() > 1 && rootChain.getAccess().config.parentDataConfiguration != nullptr) {
+        if (chains.size() > 1 && rootChain->getAccess().config.parentDataConfiguration != nullptr) {
             throw std::invalid_argument("The first provided chain must be a root chain.");
         }
 
-        auto &scripts = rootChain.getAccess().getScripts();
+        auto &scripts = rootChain->getAccess().getScripts();
         size_t totalScriptCount = scripts.totalAddressCount();
 
-        auto rootScriptsDirectory = rootChain.getAccess().config.rootScriptsDirectory();
+        auto rootScriptsDirectory = rootChain->getAccess().config.rootScriptsDirectory();
         for (auto &chain : chains) {
-            if (chain.getAccess().config.rootScriptsDirectory() != rootScriptsDirectory) {
+            if (chain->getAccess().config.rootScriptsDirectory() != rootScriptsDirectory) {
                 throw std::invalid_argument("The provided chains do not belong to the same root chain.");
             }
         }
 
-        auto reduceToChain = getReduceToChain(chains, reduceToChainId);
-        
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {
             std::vector<uint32_t> starts(DedupAddressType::size);
@@ -493,16 +491,19 @@ namespace blocksci {
         }
 
         auto parent = createClusters(chains, scriptStarts, static_cast<uint32_t>(totalScriptCount), std::forward<ChangeFunc>(changeHeuristic), ignoreCoinJoin);
+
+        auto reduceToChain = getReduceToChain(chains, reduceToChainId);
         uint32_t addressCount, clusterCount;
         std::tie(addressCount, clusterCount) = remapClusterIds(parent, typeIndexes, reduceToChain);
+
         serializeClusterData(scripts, outputPath, parent, scriptStarts, addressCount, clusterCount);
 
         std::cout << "Finished clustering with " << addressCount << " addresses in " << clusterCount << " clusters" << std::endl;
 
-        return {filesystem::path{outputPath}.str(), chains[0].getAccess()};
+        return {filesystem::path{outputPath}.str(), chains[0]->getAccess()};
     }
     
-    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange*> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
         
         auto changeHeuristicL = [&changeHeuristic](const Transaction &tx) -> ranges::any_view<Output> {
             return changeHeuristic(tx);
@@ -511,7 +512,7 @@ namespace blocksci {
         return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
     
-    ClusterManager ClusterManager::createClustering(std::vector<BlockRange> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
+    ClusterManager ClusterManager::createClustering(std::vector<BlockRange*> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
         return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 
@@ -521,15 +522,15 @@ namespace blocksci {
             return changeHeuristic(tx);
         };
 
-        std::vector<BlockRange> chains;
-        chains.push_back(chain);
+        std::vector<BlockRange*> chains;
+        chains.push_back(&chain);
 
         return createClusteringImpl(chains, changeHeuristicL, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 
     ClusterManager ClusterManager::createClustering(BlockRange &chain, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
-        std::vector<BlockRange> chains;
-        chains.push_back(chain);
+        std::vector<BlockRange*> chains;
+        chains.push_back(&chain);
         return createClusteringImpl(chains, changeHeuristic, outputPath, overwrite, reduceTo, ignoreCoinJoin);
     }
 } // namespace blocksci

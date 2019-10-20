@@ -61,10 +61,10 @@ void init_cluster_manager(pybind11::module &s) {
             stop = chain.size();
         }
         auto range = chain[{start, stop}];
-        return ClusterManager::createClustering(range, heuristic, location, shouldOverwrite, ignoreCoinJoin);
+        return ClusterManager::createClustering(range, heuristic, location, shouldOverwrite, ChainId::UNSPECIFIED, ignoreCoinJoin);
     }, py::arg("location"), py::arg("chain"), py::arg("start") = 0, py::arg("stop") = -1,
     py::arg("heuristic") = heuristics::ChangeHeuristic{heuristics::NoChange{}}, py::arg("should_overwrite") = false, py::arg("ignore_coinjoin") = true)
-    .def("cluster_with_address", [](const ClusterManager &cm, const Address &address) -> Cluster {
+    .def("cluster_with_address", [](const ClusterManager &cm, const Address &address) -> ranges::optional<Cluster> {
        return cm.getCluster(address);
     }, py::arg("address"), "Return the cluster containing the given address")
     .def("clusters", [](ClusterManager &cm) -> Range<Cluster> {
