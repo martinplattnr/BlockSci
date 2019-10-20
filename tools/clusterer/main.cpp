@@ -15,33 +15,32 @@
 #include <iostream>
 
 int main(int argc, char * argv[]) {
-    std::string configLocation;
+    std::vector<std::string> configLocations;
     std::string outputLocation;
+    std::string reduceToChain;
     bool overwrite;
     auto cli = (
-                clipp::value("config file location", configLocation),
-                clipp::value("output location", outputLocation),
-                clipp::option("--overwrite").set(overwrite).doc("Overwrite existing cluster files if they exist")
+        clipp::values("chain config file(s)", configLocations).doc("Chain config file(s); if more than one, all chains must have been parsed in a multi-chain configuration").required(true),
+        (clipp::required("-o", "--output-directory") & clipp::value("output location", outputLocation)).doc("Directory where clustering output is saved"),
+        clipp::option("-r", "--reduce-to") & clipp::value("coin-name", reduceToChain),
+        clipp::option("--overwrite").set(overwrite).doc("Overwrite existing cluster files if they exist")
     );
     auto res = parse(argc, argv, cli);
     if (res.any_error()) {
         std::cout << "Invalid command line parameter\n" << clipp::make_man_page(cli, argv[0]);
         return 0;
     }
-    
-    // todo-fork: initialized with the forked blockchain or ChainManager
-    //blocksci::Blockchain chain(configLocation);
 
-    //blocksci::Blockchain btcChain("/home/martin/testchains/blocksci/btc-btc/btc-main-config-forkenabled.json");
-    //blocksci::Blockchain btcForkChain("/home/martin/testchains/blocksci/btc-btc/btc-fork-config-forkenabled.json");
+    std::vector<blocksci::BlockRange*> chainsToCluster;
+    for (const auto& configLocation : configLocations) {
+        chainsToCluster.push_back(new blocksci::Blockchain{configLocation});
+    }
 
-    blocksci::Blockchain btcChain("/mnt/data/blocksci/bitcoin/current-root-v0.6/config.json");
-    blocksci::Blockchain bchForkChain("/mnt/data/blocksci/bitcoin-cash/current-fork-v0.6/config.json");
+    blocksci::ChainId::Enum reduceToChainId = blocksci::ChainId::UNSPECIFIED;
+    if ( ! reduceToChain.empty()) {
+        reduceToChainId = blocksci::ChainId::get(reduceToChain);
+    }
 
-    std::vector<blocksci::BlockRange> chains;
-    chains.push_back(btcChain);
-    chains.push_back(bchForkChain);
-
-    blocksci::ClusterManager::createClustering(chains, blocksci::heuristics::NoChange{}, outputLocation, overwrite);
+    blocksci::ClusterManager::createClustering(chainsToCluster, blocksci::heuristics::NoChange{}, outputLocation, overwrite, reduceToChainId);
     return 0;
 }
