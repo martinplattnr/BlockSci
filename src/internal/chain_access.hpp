@@ -293,9 +293,10 @@ namespace blocksci {
                     currentBlock = getBlock(firstForkedBlockHeight);
                 }
             }
-            currentBlock--;
 
-            return static_cast<BlockHeight>(currentBlock->height);
+            // -1 to adjust for iterator that goes 1 too far, and -1 to adjust for RawBlock.height,
+            // which is 1-indexed, but this method has always returned 0-indexed block heights
+            return static_cast<BlockHeight>(currentBlock->height - 2);
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
