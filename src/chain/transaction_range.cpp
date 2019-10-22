@@ -33,7 +33,6 @@ namespace blocksci {
     }
     
     TransactionRange::iterator::value_type TransactionRange::iterator::operator[](size_type i) const {
-        std::cout << "TransactionRange::iterator::value_type TransactionRange::iterator::operator[](size_type i) const" << std::endl;
         auto index = tx.txNum + i;
         auto data = tx.getAccess().getChain().getTxData(index);
         auto height = tx.getAccess().getChain().getBlockHeight(index);
@@ -41,7 +40,6 @@ namespace blocksci {
     }
 
     Transaction TransactionRange::operator[](uint32_t txIndex) const {
-        std::cout << "Transaction TransactionRange::operator[](uint32_t txIndex) const" << std::endl;
         auto index = slice.start + txIndex;
         auto data = firstTx.getAccess().getChain().getTxData(index);
         auto height = firstTx.getAccess().getChain().getBlockHeight(index);
