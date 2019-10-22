@@ -89,7 +89,7 @@ namespace blocksci {
             static auto table = blocksci::make_dynamic_table<DedupAddressType, ClusterNumFunctor>();
             auto index = static_cast<size_t>(dedupType(address.type));
             auto clusterNum = table.at(index)(this, address.scriptNum);
-            if (clusterNum == std::numeric_limits<uint32_t>::max()) {
+            if (clusterNum != std::numeric_limits<uint32_t>::max()) {
                 return clusterNum;
             }
             // when using multi-chain clustering with reduceToChain, the given address may not be found in the index(es)
