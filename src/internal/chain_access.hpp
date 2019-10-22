@@ -285,7 +285,7 @@ namespace blocksci {
             }
 
             auto currentBlock = getBlock(0);
-            while (txIndex >= currentBlock->firstTxIndex) {
+            while (txIndex >= currentBlock->firstTxIndex + currentBlock->txCount) {
                 currentBlock++;
 
                 // if first forked block is reached, get new block pointer that points to the forked chain
@@ -294,9 +294,8 @@ namespace blocksci {
                 }
             }
 
-            // -1 to adjust for iterator that goes 1 too far, and -1 to adjust for RawBlock.height,
-            // which is 1-indexed, but this method has always returned 0-indexed block heights
-            return static_cast<BlockHeight>(currentBlock->height - 2);
+            // -1 to adjust for RawBlock.height, which is 1-indexed, but this method has always returned 0-indexed block heights
+            return static_cast<BlockHeight>(currentBlock->height - 1);
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
