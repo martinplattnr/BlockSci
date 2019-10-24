@@ -23,14 +23,15 @@ namespace blocksci {
     
     class BLOCKSCI_EXPORT Blockchain : public BlockRange {
         /** Pointer to the DataAccess instance that manages all data access objects (ChainAccess, ScriptAccess etc.) for this chain */
-        std::unique_ptr<DataAccess> access;
+        std::shared_ptr<DataAccess> access;
     public:
         
         Blockchain() = default;
-        Blockchain(std::unique_ptr<DataAccess> access_);
+        Blockchain(std::shared_ptr<DataAccess> access_);
         explicit Blockchain(const DataConfiguration &config);
         explicit Blockchain(const std::string &configPath);
         Blockchain(const std::string &configPath, BlockHeight maxBlock);
+        Blockchain(const blocksci::Blockchain& blockchainToCopy);
         ~Blockchain();
         
         std::string dataLocation() const;

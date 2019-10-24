@@ -24,14 +24,16 @@
 
 namespace blocksci {
     
-    Blockchain::Blockchain(std::unique_ptr<DataAccess> access_) : BlockRange{{0, access_->getChain().blockCount()}, access_.get()}, access(std::move(access_)) {}
+    Blockchain::Blockchain(std::shared_ptr<DataAccess> access_) : BlockRange{{0, access_->getChain().blockCount()}, access_.get()}, access(std::move(access_)) {}
     
-    Blockchain::Blockchain(const DataConfiguration &config) : Blockchain(std::make_unique<DataAccess>(config)) {}
+    Blockchain::Blockchain(const DataConfiguration &config) : Blockchain(std::make_shared<DataAccess>(config)) {}
     
     Blockchain::Blockchain(const std::string &configPath, BlockHeight maxBlock) : Blockchain(loadBlockchainConfig(configPath, true, maxBlock)) {}
     
     Blockchain::Blockchain(const std::string &configPath) : Blockchain(configPath, BlockHeight{0}) {}
-    
+
+    Blockchain::Blockchain(const Blockchain& blockchainToCopy) : BlockRange{{blockchainToCopy.sl.start, blockchainToCopy.sl.stop}, blockchainToCopy.access.get()}, access(blockchainToCopy.access) {}
+
     
     Blockchain::~Blockchain() = default;
     
