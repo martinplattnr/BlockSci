@@ -44,7 +44,7 @@ namespace blocksci {
         
         template <typename... Args>
         void update(uint64_t currentCount, Args&&... args) {
-            if (!silence && currentCount % 10000 == 0) {
+            if (!silence && currentCount % 50000 == 0) {
                 auto percentDone = (static_cast<double>(currentCount) / static_cast<double>(total)) * 100;
                 std::cout << "\r" << percentDone << "% done";
                 updateFunc(std::forward<Args>(args)...);
