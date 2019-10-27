@@ -124,8 +124,6 @@ namespace blocksci {
         }
         
         void link_addresses(const Address &address1, const Address &address2) {
-            //auto firstAddressIndex = addressStarts.at(dedupType(address1.type)) + address1.scriptNum - 1;
-            //auto secondAddressIndex = addressStarts.at(dedupType(address2.type)) + address2.scriptNum - 1;
             auto firstAddressIndex = addressIndex(address1);
             auto secondAddressIndex = addressIndex(address2);
             disjoinSets.unite(firstAddressIndex, secondAddressIndex);
@@ -197,9 +195,6 @@ namespace blocksci {
         std::cout << "Linking nested script-hash addresses" << std::endl;
         linkScripthashNested(access, ds);
 
-        // todo: add user option to log merge events or remove this feature entirely
-        std::ofstream logfile;
-
         auto extract = [&](const BlockRange &blocks, int threadNum) {
             auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
@@ -211,19 +206,7 @@ namespace blocksci {
                 for (auto tx : block) {
                     auto pairs = processTransaction(tx, changeHeuristic, ignoreCoinJoin);
                     for (auto &pair : pairs) {
-                        uint32_t cluster1 = ds.find(ds.addressIndex(pair.first));
-                        uint32_t cluster2 = ds.find(ds.addressIndex(pair.second));
-                        if (cluster2 > cluster1) {
-                            std::swap(cluster1, cluster2);
-                        }
-                        if (cluster1 != cluster2) {
-                            // log (block, block.timestamp, txNum, cluster1, cluster2)
-                            logfile << block.height() << ";" << block.timestamp() << ";" << tx.txNum << ";" << cluster1 << ";" << cluster2 << std::endl;
-                        }
-
-                        ds.link_clusters(cluster1, cluster2);
-
-                        //ds.link_addresses(pair.first, pair.second);
+                        ds.link_addresses(pair.first, pair.second);
                     }
                     progressBar.update(txNum);
                     txNum++;
@@ -233,10 +216,8 @@ namespace blocksci {
         };
 
         for (auto &chain : chains) {
-            std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data" << std::endl;
-            logfile.open ("cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+            std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
             chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
-            logfile.close();
         }
 
         std::cout << "Performing post-processing: resolving cluster nums for every address" << std::endl;
@@ -299,10 +280,12 @@ namespace blocksci {
             progressBar.update(parentIndex);
         }
 
-        std::cout.setf(std::ios::fixed,std::ios::floatfield);
-        std::cout.precision(2);
-        std::cout << std::endl << "Reduce result: excluded " << excludedAddresses << " out of " << parents.size() << " addresses (" << (excludedAddresses / parents.size() * 100) << "%)" << std::endl;
-        
+        if (reduceToChain != nullptr) {
+            std::cout.setf(std::ios::fixed,std::ios::floatfield);
+            std::cout.precision(2);
+            std::cout << std::endl << "Reduce result: excluded " << excludedAddresses << " out of " << parents.size() << " addresses (" << (excludedAddresses / parents.size() * 100) << "%)" << std::endl;
+        }
+
         return std::make_tuple(addressCount, clusterCount);
     }
     
@@ -449,7 +432,7 @@ namespace blocksci {
             std::cout << "Creating single-chain clustering" << std::endl;
         }
         else {
-            std::cout << "Creating multi-chain clustering based on " << chains.size() << " chain(s)" << (reduceToChainId == ChainId::UNSPECIFIED ? "" : ", reduced to addresses seen in " + ChainId::getName(reduceToChainId)) << std::endl << std::endl;
+            std::cout << "Creating multi-chain clustering based on " << chains.size() << " chain(s)" << (reduceToChainId == ChainId::UNSPECIFIED ? "" : ", reducing result to addresses seen in " + ChainId::getName(reduceToChainId)) << std::endl << std::endl;
         }
 
         BlockRange* rootChain = chains[0];
