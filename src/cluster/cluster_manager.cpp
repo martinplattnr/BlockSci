@@ -283,7 +283,7 @@ namespace blocksci {
         if (reduceToChain != nullptr) {
             std::cout.setf(std::ios::fixed,std::ios::floatfield);
             std::cout.precision(2);
-            std::cout << std::endl << "Reduce result: excluded " << excludedAddresses << " out of " << parents.size() << " addresses (" << (excludedAddresses / parents.size() * 100) << "%)" << std::endl;
+            std::cout << std::endl << "Reduce result: excluded " << excludedAddresses << " out of " << parents.size() << " addresses (" << (static_cast<float>(excludedAddresses) / parents.size() * 100) << "%)" << std::endl;
         }
 
         return std::make_tuple(addressCount, clusterCount);
