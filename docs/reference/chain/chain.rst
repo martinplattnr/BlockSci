@@ -6,6 +6,7 @@ Chain Classes
    :caption: Chain:
    
    blockchain
+   chain_ids
    block
    tx
    input
