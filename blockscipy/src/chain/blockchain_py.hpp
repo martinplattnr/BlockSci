@@ -16,5 +16,6 @@
 
 void init_data_access(pybind11::module &m);
 void init_blockchain(pybind11::class_<blocksci::Blockchain> &cl);
+void init_chain_id(pybind11::module &m);
 
 #endif /* blockchain_py_h */

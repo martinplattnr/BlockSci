@@ -29,6 +29,7 @@ void init_tx(py::class_<Transaction> &cl) {
     .def_property_readonly("_access", [](const Transaction &tx) {
         return Access{&tx.getAccess()};
     })
+    .def_property_readonly("chain_id", &Transaction::chainId, "Returns the chain ID that this Transaction object belongs to.")
     .def(py::init([](uint32_t index, blocksci::Blockchain &chain) {
         return Transaction{index, chain.getAccess()};
     }), "This functions gets the transaction with given index.")

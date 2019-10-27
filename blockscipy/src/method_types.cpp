@@ -75,6 +75,7 @@ TypenameLookup::TypenameLookup() {
     addTypeName<TaggedCluster>(typeNames, docstringTypeNames, "TaggedCluster", true, "cluster.");
     addTypeName<TaggedAddress>(typeNames, docstringTypeNames, "TaggedAddress", true, "cluster.");
 
+    addTypeName<ChainId::Enum>(typeNames, docstringTypeNames, "chain_id");
     addTypeName<AddressType::Enum>(typeNames, docstringTypeNames, "address_type");
     addTypeName<uint160>(typeNames, docstringTypeNames, "uint160");
     addTypeName<uint256>(typeNames, docstringTypeNames, "uint256");

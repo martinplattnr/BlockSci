@@ -71,6 +71,7 @@ void init_block(py::class_<Block> &cl) {
     .def_property_readonly("_access", [](const Block &block) {
         return Access{&block.getAccess()};
     })
+    .def_property_readonly("chain_id", &Block::chainId, "Returns the chain ID that this Block object belongs to.")
     .def("net_address_type_value", py::overload_cast<const Block &>(netAddressTypeValue), "Returns a set of the net change in the utxo pool after this block split up by address type")
     .def("net_full_type_value", py::overload_cast<const Block &>(netFullTypeValue), "Returns a set of the net change in the utxo pool after this block split up by full type")
     ;

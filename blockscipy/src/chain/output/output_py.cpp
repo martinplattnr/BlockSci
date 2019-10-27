@@ -26,6 +26,7 @@ void init_output(py::class_<Output> &cl) {
     .def_property_readonly("_access", [](const Output &output) {
         return Access{&output.getAccess()};
     })
+    .def_property_readonly("chain_id", &Output::chainId, "Returns the chain ID that this Output object belongs to.")
     ;
 }
 

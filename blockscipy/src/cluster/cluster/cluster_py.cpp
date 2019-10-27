@@ -64,14 +64,15 @@ void init_cluster_manager(pybind11::module &s) {
         return ClusterManager::createClustering(range, heuristic, location, shouldOverwrite, ChainId::UNSPECIFIED, ignoreCoinJoin);
     }, py::arg("location"), py::arg("chain"), py::arg("start") = 0, py::arg("stop") = -1,
     py::arg("heuristic") = heuristics::ChangeHeuristic{heuristics::NoChange{}}, py::arg("should_overwrite") = false, py::arg("ignore_coinjoin") = true)
-    .def_static("create_clustering_multichain", [](const std::string &location, std::vector<Blockchain> &chains, heuristics::ChangeHeuristic &heuristic, bool shouldOverwrite, bool ignoreCoinJoin) {
+    .def_static("create_clustering_multichain", [](const std::string &location, std::vector<Blockchain> &chains, ChainId::Enum reduceTo, heuristics::ChangeHeuristic &heuristic, bool shouldOverwrite, bool ignoreCoinJoin) {
         py::scoped_ostream_redirect stream(std::cout, py::module::import("sys").attr("stdout"));
         std::vector<BlockRange*> chains_;
         for (auto &chain : chains) {
             chains_.push_back(&chain);
         }
-        return ClusterManager::createClustering(chains_, heuristic, location, shouldOverwrite, ChainId::UNSPECIFIED, ignoreCoinJoin);
-    }, py::arg("location"), py::arg("chains"), py::arg("heuristic") = heuristics::ChangeHeuristic{heuristics::NoChange{}}, py::arg("should_overwrite") = false, py::arg("ignore_coinjoin") = true)
+        return ClusterManager::createClustering(chains_, heuristic, location, shouldOverwrite, reduceTo, ignoreCoinJoin);
+    }, py::arg("location"), py::arg("chains"), py::arg("reduce_to") = ChainId::UNSPECIFIED, py::arg("heuristic") = heuristics::ChangeHeuristic{heuristics::NoChange{}}, py::arg("should_overwrite") = false, py::arg("ignore_coinjoin") = true,
+    "Create multi-chain clustering with the given chains. All passed chains must have been parsed together in a multi-chain configuration. The clustering can optionally be reduced to a single chain, eg. all addresses that do not appear on the chain to reduce to are removed from the clustering.")
     .def("cluster_with_address", [](const ClusterManager &cm, const Address &address) -> ranges::optional<Cluster> {
        return cm.getCluster(address);
     }, py::arg("address"), "Return the cluster containing the given address")

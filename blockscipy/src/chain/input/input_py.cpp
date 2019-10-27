@@ -26,6 +26,7 @@ void init_input(py::class_<Input> &cl) {
     .def_property_readonly("_access", [](const Input &input) {
         return Access{&input.getAccess()};
     })
+    .def_property_readonly("chain_id", &Input::chainId, "Returns the chain ID that this Input object belongs to.")
     ;
 }
 

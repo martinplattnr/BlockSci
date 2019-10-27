@@ -70,6 +70,7 @@ void init_blockchain(py::class_<Blockchain> &cl) {
     .def(py::init<std::string, BlockHeight>())
     .def_property_readonly("data_location", &Blockchain::dataLocation, "Returns the location of the data directory that this Blockchain object represents.")
     .def_property_readonly("config_location", &Blockchain::configLocation, "Returns the location of the configuration file that this Blockchain object represents.")
+    .def_property_readonly("chain_id", &Blockchain::chainId, "Returns the chain ID that this Blockchain object represents.")
     .def("reload", &Blockchain::reload, "Reload the blockchain to make new blocks visible (Invalidates current BlockSci objects).")
     .def("is_parser_running", &Blockchain::isParserRunning, "Returns whether the parser is currently operating on this chain's data directory.")
     .def("addresses", [](Blockchain &chain, AddressType::Enum type) {
@@ -146,4 +147,75 @@ void init_data_access(py::module &m) {
         return pyAddresses;
     }, "Find all addresses beginning with the given prefix")
     ;
+}
+
+void init_chain_id(py::module &m) {
+    py::enum_<ChainId::Enum>(m, "chain_id", py::arithmetic(), "Enumeration of all chain IDs")
+    .value("unspecified", ChainId::Enum::UNSPECIFIED)
+
+    .value("bitcoin", ChainId::Enum::BITCOIN)
+    .value("bitcoin_testnet", ChainId::Enum::BITCOIN_TESTNET)
+    .value("bitcoin_regtest", ChainId::Enum::BITCOIN_REGTEST)
+
+    .value("bitcoin_cash", ChainId::Enum::BITCOIN_CASH)
+    .value("bitcoin_cash_testnet", ChainId::Enum::BITCOIN_CASH_TESTNET)
+    .value("bitcoin_cash_regtest", ChainId::Enum::BITCOIN_CASH_REGTEST)
+
+    .value("bitcoin_cash_sv", ChainId::Enum::BITCOIN_CASH_SV)
+    .value("bitcoin_cash_sv_testnet", ChainId::Enum::BITCOIN_CASH_SV_TESTNET)
+    .value("bitcoin_cash_sv_regtest", ChainId::Enum::BITCOIN_CASH_SV_REGTEST)
+
+    .value("litecoin", ChainId::Enum::LITECOIN)
+    .value("litecoin_testnet", ChainId::Enum::LITECOIN_TESTNET)
+    .value("litecoin_regtest", ChainId::Enum::LITECOIN_REGTEST)
+
+    .value("dash", ChainId::Enum::DASH)
+    .value("dash_testnet", ChainId::Enum::DASH_TESTNET)
+
+    .value("namecoin", ChainId::Enum::NAMECOIN)
+    .value("namecoin_testnet", ChainId::Enum::NAMECOIN_TESTNET)
+
+    .value("zcash", ChainId::Enum::ZCASH)
+    .value("zcash_testnet", ChainId::Enum::ZCASH_TESTNET)
+
+
+    .def_property_readonly_static("types", [](py::object) -> std::array<ChainId::Enum, 19> {
+        return {{ChainId::Enum::UNSPECIFIED, ChainId::Enum::BITCOIN, ChainId::Enum::BITCOIN_TESTNET, ChainId::Enum::BITCOIN_REGTEST,
+                 ChainId::Enum::BITCOIN_CASH, ChainId::Enum::BITCOIN_CASH_TESTNET, ChainId::Enum::BITCOIN_CASH_REGTEST,
+                 ChainId::Enum::BITCOIN_CASH_SV, ChainId::Enum::BITCOIN_CASH_SV_TESTNET, ChainId::Enum::BITCOIN_CASH_SV_REGTEST,
+                 ChainId::Enum::LITECOIN, ChainId::Enum::LITECOIN_TESTNET, ChainId::Enum::LITECOIN_REGTEST,
+                 ChainId::Enum::DASH, ChainId::Enum::DASH_TESTNET,
+                 ChainId::Enum::NAMECOIN, ChainId::Enum::NAMECOIN_TESTNET,
+                 ChainId::Enum::ZCASH, ChainId::Enum::ZCASH_TESTNET}};
+    }, "A list of all possible chain IDs")
+    .def("__str__", [](ChainId::Enum val) {
+        switch (val) {
+            case ChainId::UNSPECIFIED : return "unspecified";
+
+            case ChainId::BITCOIN: return "bitcoin";
+            case ChainId::BITCOIN_TESTNET: return "bitcoin_testnet";
+            case ChainId::BITCOIN_REGTEST: return "bitcoin_regtest";
+
+            case ChainId::BITCOIN_CASH: return "bitcoin_cash";
+            case ChainId::BITCOIN_CASH_TESTNET: return "bitcoin_cash_testnet";
+            case ChainId::BITCOIN_CASH_REGTEST: return "bitcoin_cash_regtest";
+
+            case ChainId::BITCOIN_CASH_SV: return "bitcoin_cash_sv";
+            case ChainId::BITCOIN_CASH_SV_TESTNET: return "bitcoin_cash_sv_testnet";
+            case ChainId::BITCOIN_CASH_SV_REGTEST: return "bitcoin_cash_sv_regtest";
+
+            case ChainId::LITECOIN: return "litecoin";
+            case ChainId::LITECOIN_TESTNET: return "litecoin_testnet";
+            case ChainId::LITECOIN_REGTEST: return "litecoin_regtest";
+
+            case ChainId::DASH: return "dash";
+            case ChainId::DASH_TESTNET: return "dash_testnet";
+
+            case ChainId::NAMECOIN: return "namecoin";
+            case ChainId::NAMECOIN_TESTNET: return "namecoin_testnet";
+
+            case ChainId::ZCASH: return "zcash";
+            case ChainId::ZCASH_TESTNET: return "zcash_testnet";
+        }
+    });
 }
