@@ -8,7 +8,10 @@
 #include <internal/data_access.hpp>
 #include <internal/data_configuration.hpp>
 
+#include <iostream>
+
 namespace blocksci {
     void ChainManager::loadFullChain(const std::string &configPath) {
+        std::cout << "loading " << configPath << std::endl;
     }
 }

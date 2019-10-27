@@ -74,7 +74,9 @@ namespace blocksci {
             {76},
             {16},
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -86,7 +88,9 @@ namespace blocksci {
             {140},
             {19},
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -98,7 +102,9 @@ namespace blocksci {
             {48},
             {50},
             "ltc",
-            1201536
+            1201536,
+            "",
+            0
         };
     }
     
@@ -110,7 +116,9 @@ namespace blocksci {
             {111},
             {58},
             "tltc",
-            83278 // Guess based on block explorer
+            83278, // Guess based on block explorer
+            "",
+            0
         };
     }
     
@@ -122,6 +130,8 @@ namespace blocksci {
             {111},
             {58},
             "rltc",
+            0,
+            "",
             0
         };
     }
@@ -134,7 +144,9 @@ namespace blocksci {
             {0x1C,0xB8},
             {0x1C,0xBD},
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -146,7 +158,9 @@ namespace blocksci {
             {0x1D,0x25},
             {0x1C,0xBA},
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -158,7 +172,9 @@ namespace blocksci {
             {52},
             {13},
             "nc",
-            std::numeric_limits<BlockHeight>::max() // Not activated yet, but planned
+            std::numeric_limits<BlockHeight>::max(), // Not activated yet, but planned
+            "",
+            0
         };
     }
     
@@ -170,7 +186,9 @@ namespace blocksci {
             {111},
             {196},
             "tn",
-            std::numeric_limits<BlockHeight>::max() // Not activated yet, but planned
+            std::numeric_limits<BlockHeight>::max(), // Not activated yet, but planned
+            "",
+            0
         };
     }
     
@@ -182,6 +200,8 @@ namespace blocksci {
             {111},
             {196},
             "bcrt",
+            0,
+            "",
             0
         };
     }
@@ -194,7 +214,9 @@ namespace blocksci {
             std::vector<unsigned char>(1,0),
             std::vector<unsigned char>(1,5),
             "bc",
-            481824
+            481824,
+            "",
+            0
         };
     }
     
@@ -206,7 +228,9 @@ namespace blocksci {
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),
             "tb",
-            834624
+            834624,
+            "",
+            0
         };
     }
     
@@ -218,7 +242,9 @@ namespace blocksci {
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -230,7 +256,9 @@ namespace blocksci {
             std::vector<unsigned char>(1,0),
             std::vector<unsigned char>(1,5),
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
@@ -242,7 +270,9 @@ namespace blocksci {
             std::vector<unsigned char>(1,111),
             std::vector<unsigned char>(1,196),
             "NONE",
-            std::numeric_limits<BlockHeight>::max() // No segwit support
+            std::numeric_limits<BlockHeight>::max(), // No segwit support
+            "",
+            0
         };
     }
     
