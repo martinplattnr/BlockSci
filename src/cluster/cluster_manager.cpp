@@ -418,7 +418,7 @@ namespace blocksci {
                     return chain;
                 }
             }
-            throw std::runtime_error("The reduce chain ID was not found in the given chains");
+            throw std::runtime_error("The chain ID to reduce to was not found in the given chains");
         }
         return nullptr;
     }
@@ -426,30 +426,25 @@ namespace blocksci {
     template <typename ChangeFunc>
     ClusterManager createClusteringImpl(std::vector<BlockRange*> &chains, ChangeFunc && changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceToChainId, bool ignoreCoinJoin) {
         prepareClusterDataLocation(outputPath, overwrite);
-        
-        // Perform clustering
-        if (chains.size() == 1) {
-            std::cout << "Creating single-chain clustering" << std::endl;
-        }
-        else {
-            std::cout << "Creating multi-chain clustering based on " << chains.size() << " chain(s)" << (reduceToChainId == ChainId::UNSPECIFIED ? "" : ", reducing result to addresses seen in " + ChainId::getName(reduceToChainId)) << std::endl << std::endl;
-        }
 
-        BlockRange* rootChain = chains[0];
+        BlockRange* firstChain = chains[0];
 
-        if (chains.size() > 1 && rootChain->getAccess().config.parentDataConfiguration != nullptr) {
-            throw std::invalid_argument("The first provided chain must be a root chain.");
-        }
-
-        auto &scripts = rootChain->getAccess().getScripts();
-        size_t totalScriptCount = scripts.totalAddressCount();
-
-        auto rootScriptsDirectory = rootChain->getAccess().config.rootScriptsDirectory();
+        auto rootScriptsDirectory = firstChain->getAccess().config.rootScriptsDirectory();
         for (auto &chain : chains) {
             if (chain->getAccess().config.rootScriptsDirectory() != rootScriptsDirectory) {
                 throw std::invalid_argument("The provided chains do not belong to the same root chain.");
             }
         }
+
+        if (reduceToChainId == ChainId::UNSPECIFIED) {
+            throw std::invalid_argument("Please provide a chain ID to reduce to other than unspecified.");
+        }
+
+        // Perform clustering
+        std::cout << "Creating clustering based on " << chains.size() << " chain(s), reducing result to addresses seen in " + ChainId::getName(reduceToChainId) << std::endl;
+
+        auto &scripts = firstChain->getAccess().getScripts();
+        size_t totalScriptCount = scripts.totalAddressCount();
 
         std::unordered_map<DedupAddressType::Enum, uint32_t> scriptStarts;
         {
@@ -483,7 +478,7 @@ namespace blocksci {
 
         std::cout << "Finished clustering with " << addressCount << " addresses in " << clusterCount << " clusters" << std::endl;
 
-        return {filesystem::path{outputPath}.str(), chains[0]->getAccess()};
+        return {filesystem::path{outputPath}.str(), reduceToChain->getAccess()};
     }
     
     ClusterManager ClusterManager::createClustering(std::vector<BlockRange*> &chains, const heuristics::ChangeHeuristic &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin) {
