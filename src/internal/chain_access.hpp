@@ -447,16 +447,10 @@ namespace blocksci {
             txHashesFile.reload();
             sequenceFile.reload();
 
-            /*
-             * does currently not work, as parentChain is const
             if (parentChain) {
-                parentChain->blockFile.reload();
-                parentChain->blockCoinbaseFile.reload();
-                parentChain->txFile.reload();
-                parentChain->txHashesFile.reload();
-                parentChain->sequenceFile.reload();
+                parentChain->reload();
             }
-            */
+
             setup();
         }
 
