@@ -47,6 +47,8 @@ namespace blocksci {
         ranges::any_view<Cluster, ranges::category::random_access | ranges::category::sized> getClusters() const;
         
         ranges::any_view<TaggedCluster> taggedClusters(const std::unordered_map<Address, std::string> &tags) const;
+
+        uint32_t getClusterCount() const;
     };
     
     using cluster_range = decltype(std::declval<ClusterManager>().getClusters());

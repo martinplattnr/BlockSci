@@ -82,6 +82,7 @@ void init_cluster_manager(pybind11::module &s) {
     .def("tagged_clusters", [](ClusterManager &cm, const std::unordered_map<blocksci::Address, std::string> &tags) -> Iterator<TaggedCluster> {
         return cm.taggedClusters(tags);
     }, py::arg("tagged_addresses"), "Given a dictionary of tags, return a list of TaggedCluster objects for any clusters containing tagged scripts")
+    .def_property_readonly("cluster_count", &ClusterManager::getClusterCount, "Returns the total number of clusters")
     ;
 }
 

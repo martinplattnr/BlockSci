@@ -112,6 +112,10 @@ namespace blocksci {
             return cluster.getTaggedUnsafe(tags);
         }) | flatMapOptionals();
     }
+
+    uint32_t ClusterManager::getClusterCount() const {
+        return clusterCount;
+    }
     
     struct AddressDisjointSets {
         DisjointSets disjoinSets;
