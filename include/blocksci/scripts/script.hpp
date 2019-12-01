@@ -33,6 +33,7 @@ namespace blocksci {
         
         void visitPointers(const std::function<void(const Address &)> &) const {}
 
+        /** Checks if a type equivalent address has ever been seen (only relevant in multi-chain mode, otherwise always True) */
         bool hasBeenSeen() const {
             return rawHeader->txFirstSeen != std::numeric_limits<uint32_t>::max();
         }
