@@ -82,16 +82,17 @@ namespace blocksci {
     class BLOCKSCI_EXPORT Cluster {
         const ClusterAccess *clusterAccess;
         
-        ranges::iterator_range<const blocksci::DedupAddress *> getDedupAddresses() const;
-        
+
         // Only holds tags by reference so it must remain alive while this range exists
         ranges::any_view<TaggedAddress> taggedAddressesUnsafe(const std::unordered_map<blocksci::Address, std::string> &tags) const;
-        
+
     public:
         uint32_t clusterNum;
-        
+
         Cluster(uint32_t clusterNum_, const ClusterAccess &access_) : clusterAccess(&access_), clusterNum(clusterNum_) {}
         
+        ranges::iterator_range<const blocksci::DedupAddress *> getDedupAddresses() const;
+
         ranges::any_view<Address> getAddresses() const;
         bool containsAddress(const Address &address) const;
         
