@@ -91,7 +91,11 @@ namespace blocksci {
     ClusterManager::~ClusterManager() = default;
 
     ranges::optional<Cluster> ClusterManager::getCluster(const Address &address) const {
-        auto clusterNum = access->getClusterNum(RawAddress{address.scriptNum, address.type});
+        return getCluster({address.scriptNum, address.type});
+    }
+
+    ranges::optional<Cluster> ClusterManager::getCluster(const RawAddress &rawAddress) const {
+        auto clusterNum = access->getClusterNum(rawAddress);
         if (clusterNum) {
             return Cluster(*clusterNum, *access);
         }
@@ -261,7 +265,7 @@ namespace blocksci {
                 seenAddress = reduceToChain->getAccess().scripts->getScriptHeader(addressNum, addressType)->hasBeenSeen();
             }
 
-            if ( reduceToChain == nullptr || seenAddress) {
+            if (reduceToChain == nullptr || seenAddress) {
                 addressCount++;
                 uint32_t &clusterId = newClusterIds[clusterNum];
                 if (clusterId == placeholder) {
@@ -383,8 +387,7 @@ namespace blocksci {
         }
 
         // Generate cluster files
-        std::vector<uint32_t> clusterPositions;
-        clusterPositions.resize(clusterCount + 1);
+        std::vector<uint32_t> clusterPositions(clusterCount + 1, 0);
         for (auto parentId : parent) {
             if (parentId != std::numeric_limits<uint32_t>::max()) {
                 clusterPositions[parentId + 1]++;

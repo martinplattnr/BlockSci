@@ -42,7 +42,8 @@ namespace blocksci {
         static ClusterManager createClustering(std::vector<BlockRange*> &chains, const std::function<ranges::any_view<Output>(const Transaction &tx)> &changeHeuristic, const std::string &outputPath, bool overwrite, ChainId::Enum reduceTo, bool ignoreCoinJoin);
         
         ranges::optional<Cluster> getCluster(const Address &address) const;
-        
+        ranges::optional<Cluster> getCluster(const RawAddress &rawAddress) const;
+
         ranges::any_view<Cluster, ranges::category::random_access | ranges::category::sized> getClusters() const;
         
         ranges::any_view<TaggedCluster> taggedClusters(const std::unordered_map<Address, std::string> &tags) const;
