@@ -111,6 +111,21 @@ namespace blocksci {
         dedupTypeCheckThrow(index);
         return equivedTable[index];
     }
+
+    template<DedupAddressType::Enum type>
+    struct ReprTypeFunctor {
+        static constexpr AddressType::Enum f() {
+            return DedupAddressInfo<type>::reprType;
+        }
+    };
+
+    static constexpr auto reprTypeTable = blocksci::make_static_table<DedupAddressType, ReprTypeFunctor>();
+
+    constexpr AddressType::Enum reprType(DedupAddressType::Enum t) {
+        auto index = static_cast<size_t>(t);
+        dedupTypeCheckThrow(index);
+        return reprTypeTable[index];
+    }
     
     std::string dedupAddressName(DedupAddressType::Enum type);
     
