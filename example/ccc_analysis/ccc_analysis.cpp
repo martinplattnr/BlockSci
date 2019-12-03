@@ -40,8 +40,9 @@ int main(int argc, char * argv[]) {
         << "sameAsOnForkHeight,"
         << "clustersInReference,"
         << "smallestReferenceClusterSize,"
-        << "ratioSmallestReferenceClusterSizeToClusterSize,"
-        << "ratioSmallestReferenceClusterSizeToAverageReferenceClusterSize,"
+        << "largestReferenceClusterSize,"
+        << "additionallyMergedAddresses,"
+        << "clusterGrowth,"
         << "tags,"
         << "tagCount"
         << "\n";
@@ -54,8 +55,9 @@ int main(int argc, char * argv[]) {
         << "sameAsOnForkHeight,"
         << "clustersInReference,"
         << "smallestReferenceClusterSize,"
-        << "ratioSmallestReferenceClusterSizeToClusterSize,"
-        << "ratioSmallestReferenceClusterSizeToAverageReferenceClusterSize,"
+        << "largestReferenceClusterSize,"
+        << "additionallyMergedAddresses,"
+        << "clusterGrowth,"
         << "tags,"
         << "tagCount"
         << "\n";
@@ -93,7 +95,8 @@ int main(int argc, char * argv[]) {
         uint32_t clusterSize = cluster.getTypeEquivSize();
         auto clusterDedupAddresses = cluster.getDedupAddresses();
 
-        uint32_t smallestClusterSize = std::numeric_limits<uint32_t>::max();
+        uint32_t smallestReferenceClusterSize = std::numeric_limits<uint32_t>::max();
+        uint32_t largestReferenceClusterSize = 0;
 
         std::unordered_map<uint32_t, uint32_t> clustersInReferenceData;
         std::unordered_set<std::string> clusterTags;
@@ -160,8 +163,11 @@ int main(int argc, char * argv[]) {
         }
 
         for (const auto& cl : clustersInReferenceData) {
-            if (cl.second < smallestClusterSize) {
-                smallestClusterSize = cl.second;
+            if (cl.second < smallestReferenceClusterSize) {
+                smallestReferenceClusterSize = cl.second;
+            }
+            if (cl.second > largestReferenceClusterSize) {
+                largestReferenceClusterSize = cl.second;
             }
 
             fout_cluster_components
@@ -187,9 +193,10 @@ int main(int argc, char * argv[]) {
             << btcOnlyCluster << ","
             << sameAsOnForkHeight << ","
             << clusterCountInReferenceData << ","
-            << smallestClusterSize << ","
-            << (float) smallestClusterSize / clusterSize << ","
-            << (float) smallestClusterSize / ((float) clusterSize / clusterCountInReferenceData) << ","
+            << smallestReferenceClusterSize << ","
+            << largestReferenceClusterSize << ","
+            << (clusterSize - largestReferenceClusterSize) << ","
+            << ((float) clusterSize / largestReferenceClusterSize - 1) << ","
             // "implode" clusterTag set
             << std::accumulate(clusterTags.begin(), clusterTags.end(), std::string(),
             [](const std::string& a, const std::string& b) -> std::string {
@@ -207,9 +214,10 @@ int main(int argc, char * argv[]) {
                 << btcOnlyCluster << ","
                 << sameAsOnForkHeight << ","
                 << clusterCountInReferenceData << ","
-                << smallestClusterSize << ","
-                << (float) smallestClusterSize / clusterSize << ","
-                << (float) smallestClusterSize / ((float) clusterSize / clusterCountInReferenceData) << ","
+                << smallestReferenceClusterSize << ","
+                << largestReferenceClusterSize << ","
+                << (clusterSize - largestReferenceClusterSize) << ","
+                << ((float) clusterSize / largestReferenceClusterSize - 1) << ","
                 // "implode" clusterTag set
                 << std::accumulate(clusterTags.begin(), clusterTags.end(), std::string(),
                                    [](const std::string& a, const std::string& b) -> std::string {
