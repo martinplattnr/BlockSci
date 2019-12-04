@@ -131,7 +131,7 @@ int main(int argc, char * argv[]) {
 
         if (bchAddressCount == 0) {
             btcOnlyCluster = true;
-            //sameAsOnForkHeight = false;
+            sameAsOnForkHeight = false;
             btcOnlyClusterCount++;
         }
         else {
