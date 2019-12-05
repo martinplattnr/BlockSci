@@ -210,6 +210,10 @@ namespace blocksci {
         std::cout << "Linking nested script-hash addresses" << std::endl;
         linkScripthashNested(access, ds);
 
+        std::ofstream logfile;
+
+        logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
+
         auto extract = [&](const BlockRange &blocks, int threadNum) {
             auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
@@ -221,7 +225,27 @@ namespace blocksci {
                 for (auto tx : block) {
                     auto pairs = processTransaction(tx, changeHeuristic, ignoreCoinJoin);
                     for (auto &pair : pairs) {
-                        ds.link_addresses(pair.first, pair.second);
+                        uint32_t cluster1 = ds.find(ds.addressIndex(pair.first));
+                        uint32_t cluster2 = ds.find(ds.addressIndex(pair.second));
+                        if (cluster2 > cluster1) {
+                            std::swap(cluster1, cluster2);
+                        }
+                        if (cluster1 != cluster2) {
+                            // log (block, block.timestamp, txNum, cluster1, cluster2)
+                            logfile
+                                << block.height() << ","
+                                << block.timestamp() << ","
+                                << tx.txNum << ","
+                                << pair.first.type << ","
+                                << pair.first.scriptNum << ","
+                                << pair.second.type << ","
+                                << pair.second.scriptNum << ","
+                                << std::endl;
+                        }
+
+                        ds.link_clusters(cluster1, cluster2);
+
+                        //ds.link_addresses(pair.first, pair.second);
                     }
                     progressBar.update(txNum);
                     txNum++;
@@ -232,7 +256,14 @@ namespace blocksci {
 
         for (auto &chain : chains) {
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
-            chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+            if (chain->getAccess().config.chainConfig.coinName == "bitcoin_cash") {
+                logfile.open ("/mnt/data/analysis/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+            }
+            else {
+                logfile.open ("/dev/null");
+            }
+            chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
+            logfile.close();
         }
 
         std::cout << "Performing post-processing: resolving cluster nums for every address" << std::endl;
