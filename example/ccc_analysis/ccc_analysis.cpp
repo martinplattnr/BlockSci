@@ -152,9 +152,14 @@ int main(int argc, char * argv[]) {
                         sameAsOnForkHeight = false;
                     }
                 }
-                else if (clusterSize == firstClusterInReferenceData->getTypeEquivSize()) {
-                    sameAsOnForkHeight = true;
-                    ++sameAsOnForkHeightCount;
+                else {
+                    if (clusterSize == firstClusterInReferenceData->getTypeEquivSize()) {
+                        sameAsOnForkHeight = true;
+                        ++sameAsOnForkHeightCount;
+                    }
+                    else {
+                        sameAsOnForkHeight = false;
+                    }
                 }
             }
             else {
