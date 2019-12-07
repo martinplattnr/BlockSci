@@ -213,6 +213,7 @@ namespace blocksci {
         std::ofstream logfile;
 
         std::vector<bool> clusterHasBtcAddrs(totalScriptCount, false);
+        std::vector<uint32_t> clusterSize(totalScriptCount, 1);
 
         auto &scripts = access.scripts;
 
@@ -251,41 +252,44 @@ namespace blocksci {
 
                         if (blocks.chainId() == ChainId::BITCOIN) {
                             if (cluster1 != cluster2) {
+                                logfile
+                                    << block.height() << ","
+                                    << tx.txNum << ","
+                                    << clusterSize[cluster1] << ","
+                                    << clusterSize[cluster2]
+                                    << std::endl;
+
                                 clusterHasBtcAddrs[cluster1] = true;
                                 clusterHasBtcAddrs[cluster2] = true;
 
-                                logfile
-                                    << block.height() << ","
-                                    << block.timestamp() << ","
-                                    << tx.txNum << ","
-                                    << pair.first.type << ","
-                                    << pair.first.scriptNum << ","
-                                    << pair.second.type << ","
-                                    << pair.second.scriptNum
-                                    << std::endl;
+                                uint32_t newClusterSize = clusterSize[cluster1] + clusterSize[cluster2];
+                                clusterSize[cluster1] = newClusterSize;
+                                clusterSize[cluster2] = newClusterSize;
                             }
                         }
 
                         if (blocks.chainId() == ChainId::BITCOIN_CASH) {
                             if (cluster1 != cluster2) {
+                                if (clusterHasBtcAddrs[cluster1] && clusterHasBtcAddrs[cluster2]) {
+                                    ++relevantCCCMerges;
+
+                                    // log (block, txNum, cluster1Size, cluster2Size)
+                                    logfile
+                                        << block.height() << ","
+                                        << tx.txNum << ","
+                                        << clusterSize[cluster1] << ","
+                                        << clusterSize[cluster2]
+                                        << std::endl;
+                                }
+
                                 if (clusterHasBtcAddrs[cluster1] || clusterHasBtcAddrs[cluster2]) {
                                     clusterHasBtcAddrs[cluster1] = true;
                                     clusterHasBtcAddrs[cluster2] = true;
                                 }
-                                else if (clusterHasBtcAddrs[cluster1] && clusterHasBtcAddrs[cluster2]) {
-                                    ++relevantCCCMerges;
 
-                                    // log (block, block.timestamp, txNum, cluster1, cluster2)
-                                    logfile
-                                        << block.height() << ","
-                                        << block.timestamp() << ","
-                                        << tx.txNum << ","
-                                        << pair.first.type << ","
-                                        << pair.first.scriptNum << ","
-                                        << pair.second.type << ","
-                                        << pair.second.scriptNum
-                                        << std::endl;
-                                }
+                                uint32_t newClusterSize = clusterSize[cluster1] + clusterSize[cluster2];
+                                clusterSize[cluster1] = newClusterSize;
+                                clusterSize[cluster2] = newClusterSize;
                             }
                         }
 
@@ -305,7 +309,7 @@ namespace blocksci {
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
 
             logfile.open ("/mnt/data/analysis/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
-            logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
+            logfile << "height,txnum,cluster1Size,cluster2Size" << std::endl;
 
             chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
             logfile.close();
