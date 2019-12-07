@@ -232,6 +232,7 @@ namespace blocksci {
 
         uint32_t relevantCCCMerges = 0;
         auto extract = [&](const BlockRange &blocks, int threadNum) {
+            relevantCCCMerges = 0;
             auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
             if (threadNum != progressThread) {
@@ -248,14 +249,11 @@ namespace blocksci {
                             std::swap(cluster1, cluster2);
                         }
 
-                        if (blocks.chainId() == ChainId::BITCOIN_CASH && clusterHasBtcAddrs[cluster1] && clusterHasBtcAddrs[cluster2]) {
+                        if (blocks.chainId() == ChainId::BITCOIN) {
                             if (cluster1 != cluster2) {
                                 clusterHasBtcAddrs[cluster1] = true;
                                 clusterHasBtcAddrs[cluster2] = true;
 
-                                ++relevantCCCMerges;
-
-                                // log (block, block.timestamp, txNum, cluster1, cluster2)
                                 logfile
                                     << block.height() << ","
                                     << block.timestamp() << ","
@@ -265,6 +263,29 @@ namespace blocksci {
                                     << pair.second.type << ","
                                     << pair.second.scriptNum
                                     << std::endl;
+                            }
+                        }
+
+                        if (blocks.chainId() == ChainId::BITCOIN_CASH) {
+                            if (cluster1 != cluster2) {
+                                if (clusterHasBtcAddrs[cluster1] || clusterHasBtcAddrs[cluster2]) {
+                                    clusterHasBtcAddrs[cluster1] = true;
+                                    clusterHasBtcAddrs[cluster2] = true;
+                                }
+                                else if (clusterHasBtcAddrs[cluster1] && clusterHasBtcAddrs[cluster2]) {
+                                    ++relevantCCCMerges;
+
+                                    // log (block, block.timestamp, txNum, cluster1, cluster2)
+                                    logfile
+                                        << block.height() << ","
+                                        << block.timestamp() << ","
+                                        << tx.txNum << ","
+                                        << pair.first.type << ","
+                                        << pair.first.scriptNum << ","
+                                        << pair.second.type << ","
+                                        << pair.second.scriptNum
+                                        << std::endl;
+                                }
                             }
                         }
 
@@ -279,19 +300,17 @@ namespace blocksci {
             return 0;
         };
 
-        std::cout << "relevantCCCMerges=" << relevantCCCMerges << std::endl;
 
         for (auto &chain : chains) {
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
-            if (chain->getAccess().config.chainConfig.coinName == "bitcoin_cash") {
-                logfile.open ("/mnt/data/analysis/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
-                logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
-            }
-            else {
-                logfile.open ("/dev/null");
-            }
+
+            logfile.open ("/mnt/data/analysis/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+            logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
+
             chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;}, 1);
             logfile.close();
+
+            std::cout << "relevantCCCMerges=" << relevantCCCMerges << std::endl;
         }
 
         std::cout << "Performing post-processing: resolving cluster nums for every address" << std::endl;
