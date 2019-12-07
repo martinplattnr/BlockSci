@@ -112,6 +112,16 @@ namespace blocksci {
             return std::get<ScriptFile<type>>(scriptFiles);
         }
 
+        template <DedupAddressType::Enum type>
+        ScriptHeaderFile<type> &getHeaderFile() {
+            return *std::get<ScriptHeaderFile<type>>(scriptHeaderFiles);
+        }
+
+        template <DedupAddressType::Enum type>
+        const ScriptHeaderFile<type> &getHeaderFile() const {
+            return std::get<ScriptHeaderFile<type>>(scriptHeaderFiles);
+        }
+
         const ScriptHeader* getScriptHeader(uint32_t addressNum, DedupAddressType::Enum type) const {
             static auto table = blocksci::make_dynamic_table<DedupAddressType, internal::ScriptHeaderFunctor>();
             auto index = static_cast<size_t>(type);

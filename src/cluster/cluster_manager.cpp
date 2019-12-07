@@ -212,8 +212,25 @@ namespace blocksci {
 
         std::ofstream logfile;
 
-        logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
+        std::vector<bool> clusterHasBtcAddrs(totalScriptCount, false);
 
+        auto &scripts = access.scripts;
+
+        // log which clusters contain addresses that appear on BTC
+        uint32_t addressesSeenOnBtc = 0;
+        blocksci::for_each(blocksci::DedupAddressType::all(), [&](auto tag) {
+            auto scriptCount = scripts->scriptCount(tag);
+            for (uint32_t i = 1; i <= scriptCount; ++i) {
+                auto scriptHeader = scripts->getScriptHeader(i, tag);
+                if (scriptHeader->hasBeenSeen()) {
+                    clusterHasBtcAddrs[ds.addressStarts.at(tag) + i - 1] = true;
+                    ++addressesSeenOnBtc;
+                }
+            }
+        });
+        std::cout << "addressesSeenOnBtc=" << addressesSeenOnBtc << std::endl;
+
+        uint32_t relevantCCCMerges = 0;
         auto extract = [&](const BlockRange &blocks, int threadNum) {
             auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
@@ -230,17 +247,25 @@ namespace blocksci {
                         if (cluster2 > cluster1) {
                             std::swap(cluster1, cluster2);
                         }
-                        if (cluster1 != cluster2) {
-                            // log (block, block.timestamp, txNum, cluster1, cluster2)
-                            logfile
-                                << block.height() << ","
-                                << block.timestamp() << ","
-                                << tx.txNum << ","
-                                << pair.first.type << ","
-                                << pair.first.scriptNum << ","
-                                << pair.second.type << ","
-                                << pair.second.scriptNum << ","
-                                << std::endl;
+
+                        if (blocks.chainId() == ChainId::BITCOIN_CASH && clusterHasBtcAddrs[cluster1] && clusterHasBtcAddrs[cluster2]) {
+                            if (cluster1 != cluster2) {
+                                clusterHasBtcAddrs[cluster1] = true;
+                                clusterHasBtcAddrs[cluster2] = true;
+
+                                ++relevantCCCMerges;
+
+                                // log (block, block.timestamp, txNum, cluster1, cluster2)
+                                logfile
+                                    << block.height() << ","
+                                    << block.timestamp() << ","
+                                    << tx.txNum << ","
+                                    << pair.first.type << ","
+                                    << pair.first.scriptNum << ","
+                                    << pair.second.type << ","
+                                    << pair.second.scriptNum
+                                    << std::endl;
+                            }
                         }
 
                         ds.link_clusters(cluster1, cluster2);
@@ -254,10 +279,13 @@ namespace blocksci {
             return 0;
         };
 
+        std::cout << "relevantCCCMerges=" << relevantCCCMerges << std::endl;
+
         for (auto &chain : chains) {
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
             if (chain->getAccess().config.chainConfig.coinName == "bitcoin_cash") {
                 logfile.open ("/mnt/data/analysis/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+                logfile << "height,timestamp,txnum,addr1type,addr1num,addr2type,addr2num" << std::endl;
             }
             else {
                 logfile.open ("/dev/null");
