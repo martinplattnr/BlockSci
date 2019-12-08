@@ -7,24 +7,54 @@
 #include <blocksci/cluster.hpp>
 #include <internal/data_access.hpp>
 #include <internal/script_access.hpp>
+#include <internal/address_info.hpp>
 
 #include <iostream>
+#include <string>
 
-std::unordered_map<blocksci::DedupAddress, std::string> getTags(blocksci::Blockchain& chain);
+std::unordered_map<blocksci::DedupAddress, std::pair<std::string, std::string>> getTags(blocksci::Blockchain& chain);
+
+std::string implode(std::unordered_set<std::string> iterable) {
+    return std::accumulate(iterable.begin(), iterable.end(), std::string(),
+            [](const std::string& a, const std::string& b) -> std::string {
+                return a + (a.length() > 0 ? "," : "") + b;
+            } );
+}
 
 int main(int argc, char * argv[]) {
     blocksci::Blockchain btc {"/mnt/data/blocksci/bitcoin/595303-root-v0.6-0e6e863/config.json"};
     blocksci::Blockchain bch {"/mnt/data/blocksci/bitcoin-cash/595303-fork-v0.6-0e6e863/config.json"};
 
+    auto &scripts = btc.getAccess().scripts;
+
+    std::unordered_map<blocksci::DedupAddress, uint32_t> addressLastUsageBtc;
+    addressLastUsageBtc.reserve(scripts->totalAddressCount());
+
+    // get and store block height of last usage for every address
+    RANGES_FOR(auto block, btc) {
+        RANGES_FOR(auto tx, block) {
+            RANGES_FOR(auto output, tx.outputs()) {
+                addressLastUsageBtc[{output.getAddress().scriptNum, blocksci::dedupType(output.getAddress().type)}] = block.height();
+            }
+            RANGES_FOR(auto input, tx.inputs()) {
+                addressLastUsageBtc[{input.getAddress().scriptNum, blocksci::dedupType(input.getAddress().type)}] = block.height();
+            }
+        }
+    }
+
     auto lastBlockBeforeFork = btc[478558];
     uint32_t lastTxIndexBeforeFork = lastBlockBeforeFork.endTxIndex() - 1;
 
+    // load clusterings
     auto mainClustering = blocksci::ClusterManager("/mnt/data/blocksci/ccc_python_btc_bch_reduceto_btc__", btc.getAccess());
     auto referenceClustering = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc__", btc.getAccess());
     auto forkHeightClustering = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_478558__", btc.getAccess());
 
-    std::cout << "mainClustering.getClusterCount()=" << mainClustering.getClusterCount() << std::endl;
+    uint32_t mainClusteringCount = mainClustering.getClusterCount();
 
+    std::cout << "mainClustering.getClusterCount()=" << mainClusteringCount << std::endl << std::endl;
+
+    // open output files
     std::fstream fout_ccc_clusters, fout_ccc_clusters_relevant, fout_cluster_components, fout_cluster_components_relevant, fout_cluster_tags;
     fout_ccc_clusters.open("/mnt/data/analysis/ccc_clusters_all.csv", std::ios::out | std::ios::app);
     fout_ccc_clusters_relevant.open("/mnt/data/analysis/ccc_clusters_relevant.csv", std::ios::out | std::ios::app);
@@ -32,7 +62,10 @@ int main(int argc, char * argv[]) {
     fout_cluster_components_relevant.open("/mnt/data/analysis/ccc_cluster_components_relevant.csv", std::ios::out | std::ios::app);
     fout_cluster_tags.open("/mnt/data/analysis/ccc_cluster_tags.csv", std::ios::out | std::ios::app);
 
-    fout_ccc_clusters
+    std::stringstream ccc_clusters_headers, cluster_components_headers;
+
+    // write CSV file headers
+    ccc_clusters_headers
         << "clusterId,"
         << "clusterSize,"
         << "bchAddresses,"
@@ -43,40 +76,33 @@ int main(int argc, char * argv[]) {
         << "largestReferenceClusterSize,"
         << "additionallyMergedAddresses,"
         << "clusterGrowth,"
-        << "tags,"
+        //<< "balance"
+        << "lastUsage,"
+        << "tagCategories,"
+        << "tagEntities,"
         << "tagCount"
         << "\n";
 
-    fout_ccc_clusters_relevant
+    fout_ccc_clusters << ccc_clusters_headers.str();
+    fout_ccc_clusters_relevant << ccc_clusters_headers.str();
+
+    cluster_components_headers
         << "clusterId,"
-        << "clusterSize,"
-        << "bchAddresses,"
-        << "btcOnlyCluster,"
-        << "sameAsOnForkHeight,"
-        << "clustersInReference,"
-        << "smallestReferenceClusterSize,"
-        << "largestReferenceClusterSize,"
-        << "additionallyMergedAddresses,"
-        << "clusterGrowth,"
-        << "tags,"
+        << "referenceClusterId,"
+        << "referenceClusterSize,"
+        << "lastUsage,"
+        << "tagCategories,"
+        << "tagEntities,"
         << "tagCount"
         << "\n";
 
-    fout_cluster_components
-        << "clusterId,"
-        << "referenceClusterId,"
-        << "referenceClusterSize"
-        << "\n";
-
-    fout_cluster_components_relevant
-        << "clusterId,"
-        << "referenceClusterId,"
-        << "referenceClusterSize"
-        << "\n";
+    fout_cluster_components << cluster_components_headers.str();
+    fout_cluster_components_relevant << cluster_components_headers.str();
 
     fout_cluster_tags
         << "clusterId,"
-        << "tag"
+        << "category,"
+        << "entity"
         << "\n";
 
     uint32_t addressesMissingInReferenceClustering = 0;
@@ -89,7 +115,8 @@ int main(int argc, char * argv[]) {
     bool sameAsOnForkHeight = false;
     uint32_t sameAsOnForkHeightCount = 0;
 
-    std::unordered_map<blocksci::DedupAddress, std::string> tags = getTags(btc);
+    // generate tag map
+    std::unordered_map<blocksci::DedupAddress, std::pair<std::string, std::string>> tags = getTags(btc);
 
     RANGES_FOR (auto cluster, mainClustering.getClusters()) {
         uint32_t clusterSize = cluster.getTypeEquivSize();
@@ -98,8 +125,17 @@ int main(int argc, char * argv[]) {
         uint32_t smallestReferenceClusterSize = std::numeric_limits<uint32_t>::max();
         uint32_t largestReferenceClusterSize = 0;
 
-        std::unordered_map<uint32_t, uint32_t> clustersInReferenceData;
+        //uint64_t clusterBalance = cluster.calculateBalance(-1);
+        uint32_t clusterLastUsageBtc = 0;
+
+        using ReferenceClusterInfo = std::unordered_map<uint32_t, std::tuple<uint32_t, uint32_t, std::unordered_set<std::string>, std::unordered_set<std::string>>>;
+        ReferenceClusterInfo clustersInReferenceData;
+        std::unordered_set<std::string> clusterTagCategories;
         std::unordered_set<std::string> clusterTags;
+
+        if (cluster.clusterNum % 100000 == 0) {
+            std::cout << "\rProgress: " << ((float) cluster.clusterNum / mainClusteringCount) << "%" << std::flush;
+        }
 
         for (auto dedupAddress : clusterDedupAddresses) {
             auto bchAddressScriptBase = blocksci::Address{dedupAddress.scriptNum, reprType(dedupAddress.type), bch.getAccess()}.getBaseScript();
@@ -107,20 +143,56 @@ int main(int argc, char * argv[]) {
                 ++bchAddressCount;
             }
 
+            // determine last usage of current address and update last usage of cluster if needed
+            if (addressLastUsageBtc[dedupAddress] > clusterLastUsageBtc) {
+                clusterLastUsageBtc = addressLastUsageBtc[dedupAddress];
+            }
+
+            // check if a tag can be assigned to the current address
             if (tags.find(dedupAddress) != tags.end()) {
-                std::pair<std::unordered_set<std::string>::iterator, bool> insertResult = clusterTags.insert(tags[dedupAddress]);
+                clusterTagCategories.insert(tags[dedupAddress].first);
+                std::pair<std::unordered_set<std::string>::iterator, bool> insertResult = clusterTags.insert(tags[dedupAddress].second);
                 if (insertResult.second) {
                     fout_cluster_tags
                         << cluster.clusterNum << ","
-                        << tags[dedupAddress]
+                        << tags[dedupAddress].first << ","
+                        << tags[dedupAddress].second
                         << "\n";
                 }
             }
 
+            // find the cluster in the reference clustering that contains the current address
             auto clusterInReferenceData = referenceClustering.getCluster(blocksci::RawAddress{dedupAddress.scriptNum, reprType(dedupAddress.type)});
             if (clusterInReferenceData) {
+                std::unordered_set<std::string> referenceClusterTagCategories;
+                std::unordered_set<std::string> referenceClusterTags;
+                uint32_t referenceClusterLastUsageBtc = 0;
                 uint32_t referenceClusterSize = clusterInReferenceData->getTypeEquivSize();
-                clustersInReferenceData.insert({clusterInReferenceData->clusterNum, referenceClusterSize});
+
+                // check if reference cluster is the smallest/largest seen so far
+                if (referenceClusterSize < smallestReferenceClusterSize) {
+                    smallestReferenceClusterSize = referenceClusterSize;
+                }
+                if (referenceClusterSize > largestReferenceClusterSize) {
+                    largestReferenceClusterSize = referenceClusterSize;
+                }
+
+                // determine tags of reference cluster
+                auto referenceClusterDedupAddresses = clusterInReferenceData->getDedupAddresses();
+                for (auto referenceDedupAddress : referenceClusterDedupAddresses) {
+                    // check if a tag can be assigned to the current address
+                    if (tags.find(referenceDedupAddress) != tags.end()) {
+                        referenceClusterTagCategories.insert(tags[referenceDedupAddress].first);
+                        referenceClusterTags.insert(tags[referenceDedupAddress].second);
+                    }
+
+                    // determine last usage of current address and update last usage of reference cluster if needed
+                    if (addressLastUsageBtc[referenceDedupAddress] > referenceClusterLastUsageBtc) {
+                        referenceClusterLastUsageBtc = addressLastUsageBtc[referenceDedupAddress];
+                    }
+                }
+
+                clustersInReferenceData.insert({clusterInReferenceData->clusterNum, std::make_tuple(referenceClusterSize, referenceClusterLastUsageBtc, referenceClusterTagCategories, referenceClusterTags)});
             }
             else {
                 addressesMissingInReferenceClustering++;
@@ -168,30 +240,28 @@ int main(int argc, char * argv[]) {
         }
 
         for (const auto& cl : clustersInReferenceData) {
-            if (cl.second < smallestReferenceClusterSize) {
-                smallestReferenceClusterSize = cl.second;
-            }
-            if (cl.second > largestReferenceClusterSize) {
-                largestReferenceClusterSize = cl.second;
-            }
-
-            fout_cluster_components
+            std::stringstream ccc_cluster_components_ss;
+            ccc_cluster_components_ss
                 << cluster.clusterNum << ","
-                << cl.first << "," // reference cluster ID
-                << cl.second       // reference cluster size
+                << cl.first << ","                 // reference cluster ID
+                << std::get<0>(cl.second) << ","   // reference cluster size
+                << std::get<1>(cl.second) << ","   // reference cluster last usage
+                << "\"" << implode(std::get<2>(cl.second)) << "\"," // "implode" reference cluster tag categories
+                << "\"" << implode(std::get<3>(cl.second)) << "\"," // "implode" reference cluster tags
+                << std::get<3>(cl.second).size()   // reference cluster tag count
                 << "\n";
 
-            // only if ccc-cluster contains several single-chain clusters
+            fout_cluster_components << ccc_cluster_components_ss.str();
+
+            // only output if ccc-cluster contains several single-chain clusters
             if (clusterCountInReferenceData > 1) {
-                fout_cluster_components_relevant
-                    << cluster.clusterNum << ","
-                    << cl.first << "," // reference cluster ID
-                    << cl.second       // reference cluster size
-                    << "\n";
+                fout_cluster_components_relevant << ccc_cluster_components_ss.str();
             }
         }
 
-        fout_ccc_clusters
+        std::stringstream ccc_clusters_ss;
+
+        ccc_clusters_ss
             << cluster.clusterNum << ","
             << clusterSize << ","
             << bchAddressCount << ","
@@ -202,34 +272,18 @@ int main(int argc, char * argv[]) {
             << largestReferenceClusterSize << ","
             << (clusterSize - largestReferenceClusterSize) << ","
             << ((float) clusterSize / largestReferenceClusterSize - 1) << ","
-            // "implode" clusterTag set
-            << std::accumulate(clusterTags.begin(), clusterTags.end(), std::string(),
-            [](const std::string& a, const std::string& b) -> std::string {
-               return a + (a.length() > 0 ? ";" : "") + b;
-            } ) << ","
+            //<< clusterBalance << ","
+            << clusterLastUsageBtc << ","
+            << "\"" << implode(clusterTagCategories) << "\","
+            << "\"" << implode(clusterTags) << "\","
             << clusterTags.size()
             << "\n";
 
+        fout_ccc_clusters << ccc_clusters_ss.str();
+
         // only if ccc-cluster contains several single-chain clusters
         if (clusterCountInReferenceData > 1) {
-            fout_ccc_clusters_relevant
-                << cluster.clusterNum << ","
-                << clusterSize << ","
-                << bchAddressCount << ","
-                << btcOnlyCluster << ","
-                << sameAsOnForkHeight << ","
-                << clusterCountInReferenceData << ","
-                << smallestReferenceClusterSize << ","
-                << largestReferenceClusterSize << ","
-                << (clusterSize - largestReferenceClusterSize) << ","
-                << ((float) clusterSize / largestReferenceClusterSize - 1) << ","
-                // "implode" clusterTag set
-                << std::accumulate(clusterTags.begin(), clusterTags.end(), std::string(),
-                                   [](const std::string& a, const std::string& b) -> std::string {
-                                       return a + (a.length() > 0 ? ";" : "") + b;
-                                   } ) << ","
-                << clusterTags.size()
-                << "\n";
+            fout_ccc_clusters_relevant << ccc_clusters_ss.str();
         }
 
         bchAddressCount = 0;
@@ -242,6 +296,7 @@ int main(int argc, char * argv[]) {
     fout_cluster_components_relevant.close();
     fout_cluster_tags.close();
 
+    std::cout << std::endl << std::endl;
     std::cout << "clusterIndex=" << clusterIndex << std::endl;
     std::cout << "btcOnlyClusterCount=" << btcOnlyClusterCount << std::endl;
     std::cout << "sameAsOnForkHeightCount=" << sameAsOnForkHeightCount << std::endl;
