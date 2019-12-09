@@ -118,6 +118,8 @@ int main(int argc, char * argv[]) {
     // generate tag map
     std::unordered_map<blocksci::DedupAddress, std::pair<std::string, std::string>> tags = getTags(btc);
 
+    using ReferenceClusterInfo = std::unordered_map<uint32_t, std::tuple<uint32_t, uint32_t, std::unordered_set<std::string>, std::unordered_set<std::string>>>;
+
     RANGES_FOR (auto cluster, mainClustering.getClusters()) {
         uint32_t clusterSize = cluster.getTypeEquivSize();
         auto clusterDedupAddresses = cluster.getDedupAddresses();
@@ -128,8 +130,9 @@ int main(int argc, char * argv[]) {
         //uint64_t clusterBalance = cluster.calculateBalance(-1);
         uint32_t clusterLastUsageBtc = 0;
 
-        using ReferenceClusterInfo = std::unordered_map<uint32_t, std::tuple<uint32_t, uint32_t, std::unordered_set<std::string>, std::unordered_set<std::string>>>;
         ReferenceClusterInfo clustersInReferenceData;
+        clustersInReferenceData.reserve(clusterSize);
+
         std::unordered_set<std::string> clusterTagCategories;
         std::unordered_set<std::string> clusterTags;
 
@@ -164,9 +167,6 @@ int main(int argc, char * argv[]) {
             // find the cluster in the reference clustering that contains the current address
             auto clusterInReferenceData = referenceClustering.getCluster(blocksci::RawAddress{dedupAddress.scriptNum, reprType(dedupAddress.type)});
             if (clusterInReferenceData) {
-                std::unordered_set<std::string> referenceClusterTagCategories;
-                std::unordered_set<std::string> referenceClusterTags;
-                uint32_t referenceClusterLastUsageBtc = 0;
                 uint32_t referenceClusterSize = clusterInReferenceData->getTypeEquivSize();
 
                 // check if reference cluster is the smallest/largest seen so far
@@ -177,22 +177,28 @@ int main(int argc, char * argv[]) {
                     largestReferenceClusterSize = referenceClusterSize;
                 }
 
-                // determine tags of reference cluster
-                auto referenceClusterDedupAddresses = clusterInReferenceData->getDedupAddresses();
-                for (auto referenceDedupAddress : referenceClusterDedupAddresses) {
-                    // check if a tag can be assigned to the current address
-                    if (tags.find(referenceDedupAddress) != tags.end()) {
-                        referenceClusterTagCategories.insert(tags[referenceDedupAddress].first);
-                        referenceClusterTags.insert(tags[referenceDedupAddress].second);
+                if (clustersInReferenceData.find(clusterInReferenceData->clusterNum) == clustersInReferenceData.end()) {
+                    std::unordered_set<std::string> referenceClusterTagCategories;
+                    std::unordered_set<std::string> referenceClusterTags;
+                    uint32_t referenceClusterLastUsageBtc = 0;
+
+                    // determine tags of reference cluster
+                    auto referenceClusterDedupAddresses = clusterInReferenceData->getDedupAddresses();
+                    for (auto referenceDedupAddress : referenceClusterDedupAddresses) {
+                        // check if a tag can be assigned to the current address
+                        if (tags.find(referenceDedupAddress) != tags.end()) {
+                            referenceClusterTagCategories.insert(tags[referenceDedupAddress].first);
+                            referenceClusterTags.insert(tags[referenceDedupAddress].second);
+                        }
+
+                        // determine last usage of current address and update last usage of reference cluster if needed
+                        if (addressLastUsageBtc[referenceDedupAddress] > referenceClusterLastUsageBtc) {
+                            referenceClusterLastUsageBtc = addressLastUsageBtc[referenceDedupAddress];
+                        }
                     }
 
-                    // determine last usage of current address and update last usage of reference cluster if needed
-                    if (addressLastUsageBtc[referenceDedupAddress] > referenceClusterLastUsageBtc) {
-                        referenceClusterLastUsageBtc = addressLastUsageBtc[referenceDedupAddress];
-                    }
+                    clustersInReferenceData.insert({clusterInReferenceData->clusterNum, std::make_tuple(referenceClusterSize, referenceClusterLastUsageBtc, referenceClusterTagCategories, referenceClusterTags)});
                 }
-
-                clustersInReferenceData.insert({clusterInReferenceData->clusterNum, std::make_tuple(referenceClusterSize, referenceClusterLastUsageBtc, referenceClusterTagCategories, referenceClusterTags)});
             }
             else {
                 addressesMissingInReferenceClustering++;
