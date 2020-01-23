@@ -11,14 +11,16 @@
 int main(int argc, char * argv[]) {
     blocksci::Blockchain btc{"/mnt/data/blocksci/bitcoin/595303-root-v0.6-0e6e863/config.json"};
 
-    auto cccClusteringT0 = blocksci::ClusterManager("/mnt/data/blocksci/ccc_python_btc_bch_reduceto_btc__", btc.getAccess());
-    auto btcClusteringT0 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc__", btc.getAccess());
+    auto cccClusteringT0 = blocksci::ClusterManager("/mnt/data/blocksci/ccc_python_btc_bch_reduceto_btc_with_log__534602", btc.getAccess());
+    auto btcClusteringT0 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_534602", btc.getAccess());
+
+    auto btcClusteringT1 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_587985", btc.getAccess());
 
     std::vector<std::pair<blocksci::DedupAddress, blocksci::DedupAddress>> cccEdges;
 
-    uint64_t edgeCount = 0;
-
     uint32_t cccClusterCount = cccClusteringT0.getClusterCount();
+
+    uint32_t excludedCCCClusters = 0;
 
     RANGES_FOR (auto cccCluster, cccClusteringT0.getClusters()) {
         uint32_t cccClusterSize = cccCluster.getTypeEquivSize();
@@ -27,11 +29,28 @@ int main(int argc, char * argv[]) {
             std::cout << "\r" << (float) cccCluster.clusterNum / cccClusterCount * 100 << "% done, " << cccEdges.size() << "edges" << std::flush;
         }
 
+        if (cccClusterSize == 1) {
+            // exclude clusters with only one address
+            continue;
+        }
         // > 50: 5313677
         // > 100: ~8mio. edges
+
         // > 1000: 36195754
+        /* /root/clion_remote/cmake-build-debug-remote/example/ccc_analysis/ccc_verfication
+            99.9899% done, 27601773edges
+            additional edges via ccc: 27601773
+            excluded ccc clusters: 6068
+            Found 1377506 of 27601773 edges in BTC at t=1 (0.0499064 %)
+
+            Process finished with exit code 0
+            */
+
         // > 10000: 388234073
-        if (cccClusterSize == 1 || cccClusterSize > 50) {
+
+        // malte: sample randomly, not by size
+        if (cccClusterSize > 10000) {
+            ++excludedCCCClusters;
             continue;
         }
 
@@ -44,8 +63,6 @@ int main(int argc, char * argv[]) {
             if (processedAddresses.find(cccDedupAddress) != processedAddresses.end()) {
                 continue;
             }
-
-
 
             auto clusterInBtcT0 = btcClusteringT0.getCluster(blocksci::RawAddress{cccDedupAddress.scriptNum, reprType(cccDedupAddress.type)});
             auto clusterInBtcT0DedupAddrs = clusterInBtcT0->getDedupAddresses();
@@ -68,20 +85,20 @@ int main(int argc, char * argv[]) {
     std::cout << std::endl;
 
     std::cout << "additional edges via ccc: " << cccEdges.size() << std::endl;
+    std::cout << "excluded ccc clusters: " << excludedCCCClusters << std::endl;
+
+    uint64_t foundEdgesInBtcT1 = 0;
 
     for (auto addrPair : cccEdges) {
-        auto cccCluster1 = cccClusteringT0.getCluster({addrPair.first.scriptNum, blocksci::reprType(addrPair.first.type)});
-        auto cccCluster2 = cccClusteringT0.getCluster({addrPair.second.scriptNum, blocksci::reprType(addrPair.second.type)});
+        auto cccCluster1 = btcClusteringT1.getCluster({addrPair.first.scriptNum, blocksci::reprType(addrPair.first.type)});
+        auto cccCluster2 = btcClusteringT1.getCluster({addrPair.second.scriptNum, blocksci::reprType(addrPair.second.type)});
 
-        if (cccCluster1 && cccCluster2 && cccCluster1->clusterNum != cccCluster2->clusterNum) {
-            std::cout << "error1" << std::endl;
-        }
-
-        auto btcCluster1 = btcClusteringT0.getCluster({addrPair.first.scriptNum, blocksci::reprType(addrPair.first.type)});
-        auto btcCluster2 = btcClusteringT0.getCluster({addrPair.second.scriptNum, blocksci::reprType(addrPair.second.type)});
-
-        if (btcCluster1 && btcCluster2 && btcCluster1->clusterNum == btcCluster2->clusterNum) {
-            std::cout << "error2" << std::endl;
+        if (cccCluster1->clusterNum == cccCluster2->clusterNum) {
+            foundEdgesInBtcT1++;
         }
     }
+
+    std::cout << "Found " << foundEdgesInBtcT1 << " of " << cccEdges.size() << " edges in BTC at t=1 (" << (double) foundEdgesInBtcT1 / cccEdges.size() << " %)" << std::endl;
+
+    return 0;
 }
