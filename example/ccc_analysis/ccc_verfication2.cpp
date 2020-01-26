@@ -5,98 +5,164 @@
 #include <internal/address_info.hpp>
 
 #include <iostream>
+#include <iomanip>
 #include <string>
+#include <chrono>
+#include <thread>
 
 
 int main(int argc, char * argv[]) {
-    blocksci::Blockchain btc{"/mnt/data/blocksci/bitcoin/595303-root-v0.6-0e6e863/config.json"};
+    blocksci::Blockchain btcCcT0{"/mnt/data/blocksci/btc-bch/2017-12-30/btc/config.json"};
 
-    auto cccClusteringT0 = blocksci::ClusterManager(
-            "/mnt/data/blocksci/ccc_python_btc_bch_reduceto_btc_with_log__534602", btc.getAccess());
-    uint32_t cccClusteringCount = cccClusteringT0.getClusterCount();
-    auto btcClusteringT0 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_534602", btc.getAccess());
+    auto cccT0Clustering = blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/ccc_clustering_2017-12-30", btcCcT0.getAccess());
 
-    auto btcClusteringT1 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_587985", btc.getAccess());
-    uint32_t btcT1ClusteringCount = cccClusteringT0.getClusterCount();
+    std::vector<blocksci::ClusterManager*> clusterings = {
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_501791", btcCcT0.getAccess()), // 2017-12-30
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_529811", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_556297", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_583068", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_610540", btcCcT0.getAccess()),
+    };
 
-    std::fstream fout_results;
-    fout_results.open("/mnt/data/analysis/ccc_verfication_results.csv", std::ios::out | std::ios::app);
-
-    std::stringstream results_headers;
+    std::fstream fout_results, fout_merge_counts;
+    fout_results.open("/mnt/data/analysis/ccc_verfication_results_.csv", std::ios::out);
+    fout_merge_counts.open("/mnt/data/analysis/ccc_verfication_results_merge_counts_.csv", std::ios::out);
 
     // write CSV file headers
-    results_headers
+    fout_results
         << "clusterId,"
-        << "clusterSize,"
-        << "clustersInBtcT0,"
-        << "clustersInBtcT1,"
-        << "\n";
-    fout_results << results_headers.str();
+        << "clusterSize";
+    for (uint32_t i = 0; i < clusterings.size(); i++) {
+        fout_results << ",clustersInBtcT" << i;
+        fout_results << ",mergesInBtcT" << i;
+    }
+    fout_results << std::endl;
 
-    uint32_t mergesBtcT1vsT0 = 0;
+    fout_merge_counts << "chain,reference,period,mergeCount" << std::endl;
 
+    std::vector <uint32_t> btcMergesPerPeriod(clusterings.size(), 0);
 
-    RANGES_FOR (auto btcT1Cluster, btcClusteringT1.getClusters()) {
-        std::unordered_set<uint32_t> clustersInBtcT0;
-        auto btcT1ClusterDedupAddrs = btcT1Cluster.getDedupAddresses();
+    std::cout << std::setprecision(3);
 
-        if (btcT1Cluster.clusterNum % 100000 == 0) {
-            std::cout << "\rProgress: " << ((float) btcT1Cluster.clusterNum / btcT1ClusteringCount) * 100 << "%" << std::flush;
-        }
+    /* investigate huge ccc merges that were not present in the 595303 parse
+     * 52663,1341466,328072,-,326448,1624,318358,8090,318343,15,318340,3
+     * 63684,3355270,589490,-,586737,2753,586247,490,585855,392,585830,25
+     * 70173,2979468,1250868,-,934267,316601,703138,231129,702981,157,702958,23
+     */
 
-        for (auto btcT1Addr : btcT1ClusterDedupAddrs) {
-            auto clusterInBtcT0 = btcClusteringT0.getCluster(blocksci::RawAddress{btcT1Addr.scriptNum, reprType(btcT1Addr.type)});
-            if (clustersInBtcT0.find(clusterInBtcT0->clusterNum) == clustersInBtcT0.end()) {
-                clustersInBtcT0.insert(clusterInBtcT0->clusterNum);
+    std::cout << "Counting merge events between single-chain BTC clusterings: " << std::endl;
+    std::vector<std::future<uint32_t>> futures(clusterings.size());
+    for (uint32_t i = 1; i < clusterings.size(); i++) {
+        futures[i-1] = std::async(std::launch::async,
+            [&clusterings, i]() -> uint32_t {
+                uint32_t btcMergesPerPeriod = 0;
+                RANGES_FOR (auto btcCurrentPeriodCluster, clusterings[i]->getClusters()) {
+                    uint32_t clusterSize = btcCurrentPeriodCluster.getTypeEquivSize();
+                    std::unordered_set<uint32_t> clustersInPrevBtcPeriod;
+                    auto btcCurrentPeriodClusterDedupAddrs = btcCurrentPeriodCluster.getDedupAddresses();
+
+                    if (btcCurrentPeriodCluster.clusterNum % 500000 == 0 && i == clusterings.size() - 1) {
+                        std::cout << "\r" << ((float) btcCurrentPeriodCluster.clusterNum / clusterings[i]->getClusterCount()) * 100 << "%" << std::flush;
+                    }
+
+                    if (clusterSize == 1) {
+                        continue;
+                    }
+
+                    // does currently not include merges of new addresses
+                    for (auto btcCurrentPeriodAddr : btcCurrentPeriodClusterDedupAddrs) {
+                        auto clusterInPrevBtcPeriod = clusterings[i-1]->getCluster(blocksci::RawAddress{btcCurrentPeriodAddr.scriptNum, reprType(btcCurrentPeriodAddr.type)});
+                        if (clusterInPrevBtcPeriod) {
+                            if (clustersInPrevBtcPeriod.find(clusterInPrevBtcPeriod->clusterNum) ==
+                                clustersInPrevBtcPeriod.end()) {
+                                clustersInPrevBtcPeriod.insert(clusterInPrevBtcPeriod->clusterNum);
+                            }
+                        }
+                        else {
+                            // new address that does not exist in previous clustering
+                            btcMergesPerPeriod++;
+                        }
+                    }
+
+                    uint32_t componentsInPrevBtcPeriod = clustersInPrevBtcPeriod.size();
+                    if (componentsInPrevBtcPeriod > 1) {
+                        btcMergesPerPeriod += clustersInPrevBtcPeriod.size() - 1;
+                    }
+                }
+                return btcMergesPerPeriod;
             }
-        }
-        if (clustersInBtcT0.size() > 1) {
-            mergesBtcT1vsT0 += clustersInBtcT0.size();
-        }
+        );
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
-    // mergesBtcT1vsT0=71670998
-    std::cout << std::endl << std::endl << "mergesBtcT1vsT0=" << mergesBtcT1vsT0 << std::endl;
+    for (uint32_t i = 1; i < clusterings.size(); i++) {
+        btcMergesPerPeriod[i] = futures[i-1].get();
+        fout_merge_counts << "btc,btc," << i << "," << btcMergesPerPeriod[i] << std::endl;
+        std::cout << "Merge events between BTC T" << i-1 << "and T" << i << ":" << btcMergesPerPeriod[i] << std::endl;
+    }
 
-    RANGES_FOR (auto cccCluster, cccClusteringT0.getClusters()) {
+    uint32_t cccMergeCount = 0;
+    std::vector<uint32_t> cccMergesInBtcCount(clusterings.size(), 0);
+
+    RANGES_FOR (auto cccCluster, cccT0Clustering.getClusters()) {
         uint32_t cccClusterSize = cccCluster.getTypeEquivSize();
 
-        if (cccCluster.clusterNum % 100000 == 0) {
-            std::cout << "\rProgress: " << ((float) cccCluster.clusterNum / cccClusteringCount) * 100 << "%" << std::flush;
+        if (cccCluster.clusterNum % 500000 == 0) {
+            std::cout << "\rProgress: " << ((float) cccCluster.clusterNum / cccT0Clustering.getClusterCount()) * 100 << "%" << std::flush;
         }
 
-        if (cccClusterSize == 1 || cccClusterSize > 1000) {
+        if (cccClusterSize == 1) {
             continue;
         }
 
+        std::vector<std::unordered_set<uint32_t>> clustersInBtc(clusterings.size());
         auto cccClusterDedupAddrs = cccCluster.getDedupAddresses();
-        std::unordered_set<uint32_t> clustersInBtcT0;
-        std::unordered_set<uint32_t> clustersInBtcT1;
 
         for (auto cccDedupAddr : cccClusterDedupAddrs) {
-            auto clusterInBtcT0 = btcClusteringT0.getCluster(blocksci::RawAddress{cccDedupAddr.scriptNum, reprType(cccDedupAddr.type)});
-            if (clustersInBtcT0.find(clusterInBtcT0->clusterNum) == clustersInBtcT0.end()) {
-                clustersInBtcT0.insert(clusterInBtcT0->clusterNum);
-            }
-
-            auto clusterInBtcT1 = btcClusteringT1.getCluster(blocksci::RawAddress{cccDedupAddr.scriptNum, reprType(cccDedupAddr.type)});
-            if (clustersInBtcT1.find(clusterInBtcT1->clusterNum) == clustersInBtcT1.end()) {
-                clustersInBtcT1.insert(clusterInBtcT1->clusterNum);
+            for (uint32_t i = 0; i < clusterings.size(); i++) {
+                auto clusterInBtc = clusterings[i]->getCluster(blocksci::RawAddress{cccDedupAddr.scriptNum, reprType(cccDedupAddr.type)});
+                if (clustersInBtc[i].find(clusterInBtc->clusterNum) == clustersInBtc[i].end()) {
+                    clustersInBtc[i].insert(clusterInBtc->clusterNum);
+                }
             }
         }
 
-        uint32_t clustersInBtcT0Count, clustersInBtcT1Count;
-        clustersInBtcT0Count = clustersInBtcT0.size();
-        clustersInBtcT1Count = clustersInBtcT1.size();
-        if (clustersInBtcT1Count < clustersInBtcT0Count) {
+        cccMergeCount += clustersInBtc[0].size() - 1;
+
+        bool relevant = false;
+        for (uint32_t i = 1; i < clusterings.size(); i++) {
+            if (clustersInBtc[i-1].size() != clustersInBtc[i].size()) {
+                relevant = true;
+                break;
+            }
+        }
+
+        if (relevant) {
             fout_results
                 << cccCluster.clusterNum << ","
-                << cccClusterSize << ","
-                << clustersInBtcT0Count << ","
-                << clustersInBtcT1Count
-                << std::endl;
+                << cccClusterSize;
+
+            for (uint32_t i = 0; i < clusterings.size(); i++) {
+                fout_results << "," << clustersInBtc[i].size();
+                if (i > 0) {
+                    uint32_t cccMergesInBtcInPeriodI = clustersInBtc[i-1].size() - clustersInBtc[i].size();
+                    cccMergesInBtcCount[i] += cccMergesInBtcInPeriodI;
+                    fout_results << "," << cccMergesInBtcInPeriodI;
+                }
+                else {
+                    fout_results << ",-";
+                }
+            }
+
+            fout_results << std::endl;
         }
     }
+
+    for (uint32_t i = 0; i < clusterings.size(); i++) {
+        fout_merge_counts << "btc,ccc," << i << "," << cccMergesInBtcCount[i] << std::endl;
+    }
+
+    fout_merge_counts << "ccc,btc,0," << cccMergeCount << std::endl;
 
     return 0;
 }
