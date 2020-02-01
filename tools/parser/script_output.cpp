@@ -177,6 +177,7 @@ uint32_t AnyScriptOutput::resolve(AddressState &state) {
 // MARK: TX_PUBKEY
 
 ScriptOutputData<blocksci::AddressType::Enum::PUBKEY>::ScriptOutputData(const ranges::iterator_range<const unsigned char *> &vch1) {
+    pubkey.fill(0);
     std::copy(vch1.begin(), vch1.end(), pubkey.begin());
 }
 
@@ -315,6 +316,7 @@ blocksci::uint160 ScriptOutputData<blocksci::AddressType::Enum::MULTISIG>::getHa
 
 void ScriptOutputData<blocksci::AddressType::Enum::MULTISIG>::addAddress(const ranges::iterator_range<const unsigned char *> &vch1) {
     blocksci::RawPubkey pubkey;
+    pubkey.fill(0);
     std::copy(vch1.begin(), vch1.end(), pubkey.begin());
     addresses.emplace_back(pubkey);
     addressCount++;

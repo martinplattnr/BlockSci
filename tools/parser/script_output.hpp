@@ -68,7 +68,10 @@ struct ScriptOutputData<blocksci::AddressType::Enum::PUBKEY> : public ScriptOutp
     blocksci::RawPubkey pubkey;
     
     ScriptOutputData(const ranges::iterator_range<const unsigned char *> &vch1);
-    ScriptOutputData(const blocksci::RawPubkey &pub) : pubkey(pub) {}
+    ScriptOutputData(const blocksci::RawPubkey &pub) {
+        pubkey.fill(0);
+        pubkey = pub;
+    }
     ScriptOutputData() = default;
     
     blocksci::uint160 getHash() const;
@@ -97,7 +100,10 @@ struct ScriptOutputData<blocksci::AddressType::Enum::MULTISIG_PUBKEY> : public S
     blocksci::RawPubkey pubkey;
     
     ScriptOutputData(const ranges::iterator_range<const unsigned char *> &vch1);
-    ScriptOutputData(const blocksci::RawPubkey &pub) : pubkey(pub) {}
+    ScriptOutputData(const blocksci::RawPubkey &pub) {
+        pubkey.fill(0);
+        pubkey = pub;
+    }
     ScriptOutputData() = default;
     
     blocksci::uint160 getHash() const;

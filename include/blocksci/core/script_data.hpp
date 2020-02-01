@@ -104,7 +104,7 @@ namespace blocksci {
     struct BLOCKSCI_EXPORT ScriptDataBase {
         void visitPointers(const std::function<void(const RawAddress &)> &) const {}
     };
-    
+
     struct BLOCKSCI_EXPORT PubkeyData : public ScriptDataBase {
         union {
             uint160 address;
@@ -112,15 +112,13 @@ namespace blocksci {
         };
         bool hasPubkey;
         
-        PubkeyData(const RawPubkey &pubkey_) : pubkey(pubkey_), hasPubkey(true) {
-            // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
+        PubkeyData(const RawPubkey &pubkey_) : hasPubkey(true) {
             pubkey.fill(0);
             auto itBegin = pubkey_.begin();
             auto itEnd = itBegin + blocksci::CPubKey::GetLen(pubkey_[0]);
             std::copy(itBegin, itEnd, pubkey.begin());
         }
         PubkeyData(const uint160 &address_) : hasPubkey(false) {
-            // todo: this was set to avoid non-deterministic data in the parser output, can (should?) be removed again
             pubkey.fill(0);
             address = address_;
         }
@@ -131,7 +129,7 @@ namespace blocksci {
     };
     // check the size of PubkeyData as the padding 0-initialization has to be adapted if the size changes
     static_assert (sizeof(PubkeyData) == 66, "PubkeyData does not have the expected size.");
-    
+
     struct BLOCKSCI_EXPORT ScriptHashData : public ScriptDataBase {
         union {
             uint160 hash160; // used if a P2SH script
@@ -141,7 +139,6 @@ namespace blocksci {
         bool isSegwit;
 
         ScriptHashData(uint160 hash160_, const RawAddress &wrappedAddress_) : wrappedAddress(wrappedAddress_), isSegwit(false) {
-            // todo: this was added to avoid non-deterministic data in the parser output, can (should?) be removed again
             hash256.SetNull();
             hash160 = hash160_;
             // set padding (last 3 bytes) to zero
@@ -166,7 +163,7 @@ namespace blocksci {
     };
     // check the size of ScriptHashData as the padding 0-initialization has to be adapted if the size changes
     static_assert (sizeof(ScriptHashData) == 44, "ScriptHashData does not have the expected size.");
-    
+
     struct BLOCKSCI_EXPORT MultisigData : public ScriptDataBase {
         uint8_t m;
         uint8_t n;
