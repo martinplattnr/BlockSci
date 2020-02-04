@@ -17,16 +17,19 @@ int main(int argc, char * argv[]) {
     auto btcClusteringT1 = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_587985", btc.getAccess());
 
     std::vector<std::pair<blocksci::DedupAddress, blocksci::DedupAddress>> cccEdges;
+    uint64_t cccEdgeCount = 0;
 
     uint32_t cccClusterCount = cccClusteringT0.getClusterCount();
 
     uint32_t excludedCCCClusters = 0;
+    uint64_t foundEdgesInBtcT1 = 0;
 
     RANGES_FOR (auto cccCluster, cccClusteringT0.getClusters()) {
         uint32_t cccClusterSize = cccCluster.getTypeEquivSize();
 
-        if (cccCluster.clusterNum  % 100000 == 0) {
-            std::cout << "\r" << (float) cccCluster.clusterNum / cccClusterCount * 100 << "% done, " << cccEdges.size() << "edges" << std::flush;
+        if (cccCluster.clusterNum && cccCluster.clusterNum  % 100000 == 0) {
+            std::cout << "\r" << (float) cccCluster.clusterNum / cccClusterCount * 100 << "% done, " << cccEdgeCount << "edges, "
+                << foundEdgesInBtcT1 << " found in BTCT1 (" << (float) foundEdgesInBtcT1 / cccEdgeCount * 100 << "%)" << std::flush;
         }
 
         if (cccClusterSize == 1) {
@@ -49,46 +52,66 @@ int main(int argc, char * argv[]) {
         // > 10000: 388234073
 
         // malte: sample randomly, not by size
+
+        /*
         if (cccClusterSize > 10000) {
             ++excludedCCCClusters;
             continue;
         }
+        */
 
-        std::unordered_set<blocksci::DedupAddress> processedAddresses;
-        processedAddresses.reserve(cccClusterSize);
+
+        std::unordered_set<uint32_t> processedScClusters;
+        std::vector<blocksci::DedupAddress> addrsToLink;
 
         bool firstIteration = true;
         auto cccClusterDedupAddrs = cccCluster.getDedupAddresses();
+
+        // find all corresponding single-chain clusters
         for (auto cccDedupAddress : cccClusterDedupAddrs) {
-            if (processedAddresses.find(cccDedupAddress) != processedAddresses.end()) {
-                continue;
-            }
-
             auto clusterInBtcT0 = btcClusteringT0.getCluster(blocksci::RawAddress{cccDedupAddress.scriptNum, reprType(cccDedupAddress.type)});
-            auto clusterInBtcT0DedupAddrs = clusterInBtcT0->getDedupAddresses();
-            if (firstIteration == false) {
-                for (auto existingAddr : processedAddresses) {
-                    for (auto btcT0DedupAddr : clusterInBtcT0DedupAddrs) {
-                        cccEdges.push_back({existingAddr, btcT0DedupAddr});
-                    }
+            if (processedScClusters.find(clusterInBtcT0->clusterNum) == processedScClusters.end()) {
+                addrsToLink.push_back(clusterInBtcT0->getDedupAddresses()[0]); // it might be sufficient to only have one set for addresses, and none for processedScClusters
+                processedScClusters.insert(clusterInBtcT0->clusterNum);
+            }
+        }
+
+        /* > 10000
+         * 99.9899% done, 216534756edges, 58589026 found in BTCT1 (27.0576%)
+            additional *relevant* edges via ccc: 0
+            excluded ccc clusters: 2
+            Found 58589026 of 0 edges in BTC at t=1 (inf %)
+         */
+
+        if (addrsToLink.size() > 10000) {
+            std::cout << addrsToLink.size() << std::endl;
+            //excludedCCCClusters++;
+            //std::cout << "cluster " << cccCluster.clusterNum << std::endl;
+            //std::cout << "  processedScClusters=" << processedScClusters.size() << std::endl;
+            //std::cout << "  addrsToLink=" << addrsToLink.size() << std::endl << std::endl;
+            //continue;
+        }
+        continue;
+
+        for(uint32_t i = 0; i != addrsToLink.size(); i++) {
+            for(uint32_t j = i + 1; j != addrsToLink.size(); j++) {
+                cccEdgeCount++;
+                auto cccCluster1 = btcClusteringT1.getCluster({addrsToLink[i].scriptNum, blocksci::reprType(addrsToLink[i].type)});
+                auto cccCluster2 = btcClusteringT1.getCluster({addrsToLink[j].scriptNum, blocksci::reprType(addrsToLink[j].type)});
+                if (cccCluster1->clusterNum == cccCluster2->clusterNum) {
+                    foundEdgesInBtcT1++;
                 }
+                //cccEdges.push_back({addrsToLink[i], addrsToLink[j]});
             }
-
-            clusterInBtcT0DedupAddrs = clusterInBtcT0->getDedupAddresses();
-            for (auto btcT0DedupAddr : clusterInBtcT0DedupAddrs) {
-                processedAddresses.insert(btcT0DedupAddr);
-            }
-
-            firstIteration = false;
         }
     }
     std::cout << std::endl;
 
-    std::cout << "additional edges via ccc: " << cccEdges.size() << std::endl;
+    std::cout << "additional *relevant* edges via ccc: " << cccEdges.size() << std::endl;
     std::cout << "excluded ccc clusters: " << excludedCCCClusters << std::endl;
 
-    uint64_t foundEdgesInBtcT1 = 0;
 
+    /*
     for (auto addrPair : cccEdges) {
         auto cccCluster1 = btcClusteringT1.getCluster({addrPair.first.scriptNum, blocksci::reprType(addrPair.first.type)});
         auto cccCluster2 = btcClusteringT1.getCluster({addrPair.second.scriptNum, blocksci::reprType(addrPair.second.type)});
@@ -97,8 +120,9 @@ int main(int argc, char * argv[]) {
             foundEdgesInBtcT1++;
         }
     }
+    */
 
-    std::cout << "Found " << foundEdgesInBtcT1 << " of " << cccEdges.size() << " edges in BTC at t=1 (" << (double) foundEdgesInBtcT1 / cccEdges.size() << " %)" << std::endl;
+    std::cout << "Found " << foundEdgesInBtcT1 << " of " << cccEdges.size() << " edges in BTC at t=1 (" << (double) foundEdgesInBtcT1 / cccEdges.size() *100 << " %)" << std::endl;
 
     return 0;
 }
