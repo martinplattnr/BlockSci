@@ -242,6 +242,7 @@ namespace blocksci {
             uint32_t txNum = 0;
             for (auto block : blocks) {
                 for (auto tx : block) {
+                    // idea: output txes that cause many merges
                     auto pairs = processTransaction(tx, changeHeuristic, ignoreCoinJoin);
                     for (auto &pair : pairs) {
                         uint32_t cluster1 = ds.find(ds.addressIndex(pair.first));
