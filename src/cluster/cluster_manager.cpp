@@ -90,6 +90,13 @@ namespace blocksci {
     
     ClusterManager::~ClusterManager() = default;
 
+    ranges::optional<Cluster> ClusterManager::getCluster(const uint32_t &clusterNum) const {
+        if (clusterNum < clusterCount) {
+            return Cluster{clusterNum, *access};
+        }
+        return ranges::nullopt;
+    }
+
     ranges::optional<Cluster> ClusterManager::getCluster(const Address &address) const {
         return getCluster({address.scriptNum, address.type});
     }
