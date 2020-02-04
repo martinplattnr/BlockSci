@@ -150,6 +150,7 @@ public:
     void serializeInput(const AnyScriptInput &input, uint32_t txNum, uint32_t outputTxNum);
     void serializeWrappedInput(const AnyScriptInput &input, uint32_t txNum, uint32_t outputTxNum);
 
+    // todo: it is a problem that the firstSeen and firstSpent fields of added ScriptHeader entires is never set
     void fillScriptHeaderFiles() {
         blocksci::for_each(blocksci::DedupAddressType::all(), [&](auto tag) {
             auto &dataFile = std::get<ScriptFile<tag()>>(scriptFiles);
