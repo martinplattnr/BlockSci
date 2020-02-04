@@ -50,6 +50,11 @@ namespace blocksci {
         template<DedupAddressType::Enum type>
         uint32_t getClusterNumImpl(uint32_t scriptNum) const {
             auto &file = std::get<ScriptClusterIndexFile<type>>(scriptClusterIndexFiles);
+            // temporary fix such that queries for scriptNum > file.size() do not fail
+            // needed when looking up addrs of BTCt=1 in BTCt=0
+            if (scriptNum > file.size()) {
+                return std::numeric_limits<uint32_t>::max();
+            }
             return *file[scriptNum - 1];
         }
         

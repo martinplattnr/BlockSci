@@ -56,39 +56,45 @@ int main(int argc, char * argv[]) {
         futures[i-1] = std::async(std::launch::async,
             [&clusterings, i]() -> uint32_t {
                 uint32_t btcMergesPerPeriod = 0;
+                uint32_t newAddressCount = 0;
                 RANGES_FOR (auto btcCurrentPeriodCluster, clusterings[i]->getClusters()) {
                     uint32_t clusterSize = btcCurrentPeriodCluster.getTypeEquivSize();
-                    std::unordered_set<uint32_t> clustersInPrevBtcPeriod;
-                    auto btcCurrentPeriodClusterDedupAddrs = btcCurrentPeriodCluster.getDedupAddresses();
 
-                    if (btcCurrentPeriodCluster.clusterNum % 500000 == 0 && i == clusterings.size() - 1) {
+                    if (btcCurrentPeriodCluster.clusterNum % 1000000 == 0 && i == clusterings.size() - 1) {
                         std::cout << "\r" << ((float) btcCurrentPeriodCluster.clusterNum / clusterings[i]->getClusterCount()) * 100 << "%" << std::flush;
                     }
 
                     if (clusterSize == 1) {
+                        auto clusterInPrevBtcPeriod = clusterings[i-1]->getCluster(blocksci::RawAddress{btcCurrentPeriodCluster.getDedupAddresses()[0].scriptNum, reprType(btcCurrentPeriodCluster.getDedupAddresses()[0].type)});
+                        if (! clusterInPrevBtcPeriod) {
+                            newAddressCount++;
+                        }
                         continue;
                     }
 
+                    std::unordered_set<uint32_t> clustersInPrevBtcPeriod;
+                    auto btcCurrentPeriodClusterDedupAddrs = btcCurrentPeriodCluster.getDedupAddresses();
                     // does currently not include merges of new addresses
                     for (auto btcCurrentPeriodAddr : btcCurrentPeriodClusterDedupAddrs) {
                         auto clusterInPrevBtcPeriod = clusterings[i-1]->getCluster(blocksci::RawAddress{btcCurrentPeriodAddr.scriptNum, reprType(btcCurrentPeriodAddr.type)});
                         if (clusterInPrevBtcPeriod) {
-                            if (clustersInPrevBtcPeriod.find(clusterInPrevBtcPeriod->clusterNum) ==
-                                clustersInPrevBtcPeriod.end()) {
+                            if (clustersInPrevBtcPeriod.find(clusterInPrevBtcPeriod->clusterNum) == clustersInPrevBtcPeriod.end()) {
                                 clustersInPrevBtcPeriod.insert(clusterInPrevBtcPeriod->clusterNum);
                             }
                         }
                         else {
                             // new address that does not exist in previous clustering
                             btcMergesPerPeriod++;
+                            newAddressCount++;
                         }
                     }
 
                     uint32_t componentsInPrevBtcPeriod = clustersInPrevBtcPeriod.size();
                     if (componentsInPrevBtcPeriod > 1) {
-                        btcMergesPerPeriod += clustersInPrevBtcPeriod.size() - 1;
+                        btcMergesPerPeriod += componentsInPrevBtcPeriod - 1;
                     }
                 }
+                std::cout << i << ",newAddressCount=" << newAddressCount << std::endl;
                 return btcMergesPerPeriod;
             }
         );
