@@ -12,16 +12,16 @@
 
 
 int main(int argc, char * argv[]) {
-    blocksci::Blockchain btcCcT0{"/mnt/data/blocksci/btc-bch/2017-12-30/btc/config.json"};
+    blocksci::Blockchain btcCcT0{"/mnt/data/blocksci/btc-bch/2017-12-31/btc/config.json"};
 
-    auto cccT0Clustering = blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/ccc_clustering_2017-12-30", btcCcT0.getAccess());
+    auto cccT0Clustering = blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/ccc_clustering_2017-12-31", btcCcT0.getAccess());
 
     std::vector<blocksci::ClusterManager*> clusterings = {
-        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_501791", btcCcT0.getAccess()), // 2017-12-30
-        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_529811", btcCcT0.getAccess()),
-        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_556297", btcCcT0.getAccess()),
-        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_583068", btcCcT0.getAccess()),
-        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_610540", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_2017-12-31", btcCcT0.getAccess()), // 2017-12-30
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_2018-06-30", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_2018-12-31", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_2019-06-30", btcCcT0.getAccess()),
+        new blocksci::ClusterManager("/mnt/data/analysis/ccc_temporal/btc_clustering_2019-12-31", btcCcT0.getAccess()),
     };
 
     std::fstream fout_results, fout_merge_counts;
