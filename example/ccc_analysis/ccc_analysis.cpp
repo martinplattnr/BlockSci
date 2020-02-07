@@ -25,13 +25,10 @@ int main(int argc, char * argv[]) {
     blocksci::Blockchain btc {"/mnt/data/blocksci/btc-bch/2017-12-31/btc/config.json"};
     blocksci::Blockchain bch {"/mnt/data/blocksci/btc-bch/2017-12-31/bch/config.json"};
 
-    auto &scripts = btc.getAccess().scripts;
-
-    std::unordered_map<blocksci::DedupAddress, uint32_t> addressLastUsageBtc;
-    addressLastUsageBtc.reserve(scripts->totalAddressCount());
-
     // get and store block height of last usage for every address
-    std::cout << "### Looking up last usage for every address ###" << std::endl;
+    std::cout << "### Looking up last usage for every address ###" << std::endl << std::flush;
+    std::unordered_map<blocksci::DedupAddress, uint32_t> addressLastUsageBtc;
+    addressLastUsageBtc.reserve(btc.getAccess().scripts->totalAddressCount());
     uint32_t txCount = btc.endTxIndex();
     RANGES_FOR(auto block, btc) {
         RANGES_FOR(auto tx, block) {
@@ -87,11 +84,11 @@ int main(int argc, char * argv[]) {
 
     // write CSV file headers
     ccc_clusters_headers
-        << "clusterId,"
-        << "clusterSize,"
+        << "ccClusterId,"
+        << "ccClusterSize,"
         << "bchAddresses,"
-        << "btcOnlyCluster,"
-        << "sameAsOnForkHeight,"
+        << "btcOnlyCcCluster,"
+        << "ccCSameAsOnForkHeight,"
         << "clustersInSc,"
         << "smallestScClusterSize,"
         << "largestScClusterSize,"
@@ -127,14 +124,14 @@ int main(int argc, char * argv[]) {
         << "\n";
 
     uint32_t addressesMissingInScClustering = 0;
-    uint32_t clusterIndex = 0;
+    uint32_t ccClusterIndex = 0;
     uint32_t bchAddressCount = 0;
 
-    bool btcOnlyCluster = false;
-    uint32_t btcOnlyClusterCount = 0;
+    bool btcOnlyCcCluster = false;
+    uint32_t btcOnlyCcClusterCount = 0;
 
-    bool sameAsOnForkHeight = false;
-    uint32_t sameAsOnForkHeightCount = 0;
+    bool ccCSameAsOnForkHeight = false;
+    uint32_t ccCSameAsOnForkHeightCount = 0;
 
     // generate tag map
     std::unordered_map<blocksci::DedupAddress, std::pair<std::string, std::string>> tags = getTags(btc);
@@ -230,12 +227,12 @@ int main(int argc, char * argv[]) {
         uint32_t clusterCountInScData = clustersInScData.size();
 
         if (bchAddressCount == 0) {
-            btcOnlyCluster = true;
-            sameAsOnForkHeight = false;
-            btcOnlyClusterCount++;
+            btcOnlyCcCluster = true;
+            ccCSameAsOnForkHeight = false;
+            btcOnlyCcClusterCount++;
         }
         else {
-            btcOnlyCluster = false;
+            btcOnlyCcCluster = false;
 
             // check if the cluster has (not) changed since the BCH fork (block height 478588)
             auto firstCcDedupAddr = *(ccCluster.getDedupAddresses().begin());
@@ -245,25 +242,25 @@ int main(int argc, char * argv[]) {
                     auto btcAddressScriptBase = blocksci::Address{firstCcDedupAddr.scriptNum, reprType(firstCcDedupAddr.type), btc.getAccess()}.getBaseScript();
                     // check if address existed before fork, if yes -> true, false otherwise
                     if (*btcAddressScriptBase.getFirstTxIndex() <= lastTxIndexBeforeFork) {
-                        sameAsOnForkHeight = true;
-                        ++sameAsOnForkHeightCount;
+                        ccCSameAsOnForkHeight = true;
+                        ++ccCSameAsOnForkHeightCount;
                     }
                     else {
-                        sameAsOnForkHeight = false;
+                        ccCSameAsOnForkHeight = false;
                     }
                 }
                 else {
                     if (ccClusterSize == firstClusterInScData->getTypeEquivSize()) {
-                        sameAsOnForkHeight = true;
-                        ++sameAsOnForkHeightCount;
+                        ccCSameAsOnForkHeight = true;
+                        ++ccCSameAsOnForkHeightCount;
                     }
                     else {
-                        sameAsOnForkHeight = false;
+                        ccCSameAsOnForkHeight = false;
                     }
                 }
             }
             else {
-                sameAsOnForkHeight = false;
+                ccCSameAsOnForkHeight = false;
             }
         }
 
@@ -293,13 +290,13 @@ int main(int argc, char * argv[]) {
             << ccCluster.clusterNum << ","
             << ccClusterSize << ","
             << bchAddressCount << ","
-            << btcOnlyCluster << ","
-            << sameAsOnForkHeight << ","
+            << btcOnlyCcCluster << ","
+            << ccCSameAsOnForkHeight << ","
             << clusterCountInScData << ","
             << smallestScClusterSize << ","
             << largestScClusterSize << ","
-            << (ccClusterSize - largestScClusterSize) << ","
-            << ((float) ccClusterSize / largestScClusterSize - 1) << ","
+            << (ccClusterSize - largestScClusterSize) << "," // additionally merged addresses
+            << ((float) ccClusterSize / largestScClusterSize - 1) << "," // cluster growth
             //<< ccClusterBalance << ","
             << ccClusterLastUsageBtc << ","
             << "\"" << implode(ccClusterTagCategories) << "\","
@@ -315,7 +312,7 @@ int main(int argc, char * argv[]) {
         }
 
         bchAddressCount = 0;
-        ++clusterIndex;
+        ++ccClusterIndex;
     }
 
     fout_ccc_clusters.close();
@@ -325,9 +322,9 @@ int main(int argc, char * argv[]) {
     fout_cluster_tags.close();
 
     std::cout << std::endl << std::endl;
-    std::cout << "clusterIndex=" << clusterIndex << std::endl;
-    std::cout << "btcOnlyClusterCount=" << btcOnlyClusterCount << std::endl;
-    std::cout << "sameAsOnForkHeightCount=" << sameAsOnForkHeightCount << std::endl;
+    std::cout << "ccClusterIndex=" << ccClusterIndex << std::endl;
+    std::cout << "btcOnlyCcClusterCount=" << btcOnlyCcClusterCount << std::endl;
+    std::cout << "ccCSameAsOnForkHeightCount=" << ccCSameAsOnForkHeightCount << std::endl;
     std::cout << "addressesMissingInScClustering=" << addressesMissingInScClustering << std::endl;
 
     return 0;
