@@ -22,8 +22,8 @@ std::string implode(std::unordered_set<std::string> iterable) {
 }
 
 int main(int argc, char * argv[]) {
-    blocksci::Blockchain btc {"/mnt/data/blocksci/bitcoin/595303-root-v0.6-0e6e863/config.json"};
-    blocksci::Blockchain bch {"/mnt/data/blocksci/bitcoin-cash/595303-fork-v0.6-0e6e863/config.json"};
+    blocksci::Blockchain btc {"/mnt/data/blocksci/btc-bch/2017-12-31/btc/config.json"};
+    blocksci::Blockchain bch {"/mnt/data/blocksci/btc-bch/2017-12-31/bch/config.json"};
 
     auto &scripts = btc.getAccess().scripts;
 
@@ -60,21 +60,21 @@ int main(int argc, char * argv[]) {
     uint32_t lastTxIndexBeforeFork = lastBlockBeforeFork.endTxIndex() - 1;
 
     // load clusterings
-    auto mainClustering = blocksci::ClusterManager("/mnt/data/blocksci/ccc_python_btc_bch_reduceto_btc__", btc.getAccess());
-    auto referenceClustering = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc__", btc.getAccess());
+    auto ccClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc-bch/btc/2017-12-31", btc.getAccess());
+    auto scClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc/2017-12-31", btc.getAccess());
     auto forkHeightClustering = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_478558__", btc.getAccess());
 
-    uint32_t mainClusteringCount = mainClustering.getClusterCount();
+    uint32_t ccClusteringCount = ccClustering.getClusterCount();
 
-    std::cout << "mainClustering.getClusterCount()=" << mainClusteringCount << std::endl << std::endl;
+    std::cout << "ccClustering.getClusterCount()=" << ccClusteringCount << std::endl << std::endl;
 
     // open output files
     std::fstream fout_ccc_clusters, fout_ccc_clusters_relevant, fout_cluster_components, fout_cluster_components_relevant, fout_cluster_tags;
-    fout_ccc_clusters.open("/mnt/data/analysis/ccc_clusters_all.csv", std::ios::out | std::ios::app);
-    fout_ccc_clusters_relevant.open("/mnt/data/analysis/ccc_clusters_relevant.csv", std::ios::out | std::ios::app);
-    fout_cluster_components.open("/mnt/data/analysis/ccc_cluster_components_all.csv", std::ios::out | std::ios::app);
-    fout_cluster_components_relevant.open("/mnt/data/analysis/ccc_cluster_components_relevant.csv", std::ios::out | std::ios::app);
-    fout_cluster_tags.open("/mnt/data/analysis/ccc_cluster_tags.csv", std::ios::out | std::ios::app);
+    fout_ccc_clusters.open("/mnt/data/analysis/ccc_analysis/ccc_clusters_all.csv", std::ios::out | std::ios::app);
+    fout_ccc_clusters_relevant.open("/mnt/data/analysis/ccc_analysis/ccc_clusters_relevant.csv", std::ios::out | std::ios::app);
+    fout_cluster_components.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_components_all.csv", std::ios::out | std::ios::app);
+    fout_cluster_components_relevant.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_components_relevant.csv", std::ios::out | std::ios::app);
+    fout_cluster_tags.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_tags.csv", std::ios::out | std::ios::app);
 
     std::stringstream ccc_clusters_headers, cluster_components_headers;
 
@@ -119,7 +119,7 @@ int main(int argc, char * argv[]) {
         << "entity"
         << "\n";
 
-    uint32_t addressesMissingInReferenceClustering = 0;
+    uint32_t addressesMissingInScClustering = 0;
     uint32_t clusterIndex = 0;
     uint32_t bchAddressCount = 0;
 
@@ -134,7 +134,7 @@ int main(int argc, char * argv[]) {
 
     using ReferenceClusterInfo = std::unordered_map<uint32_t, std::tuple<uint32_t, uint32_t, std::unordered_set<std::string>, std::unordered_set<std::string>>>;
 
-    RANGES_FOR (auto cluster, mainClustering.getClusters()) {
+    RANGES_FOR (auto cluster, ccClustering.getClusters()) {
         uint32_t clusterSize = cluster.getTypeEquivSize();
         auto clusterDedupAddresses = cluster.getDedupAddresses();
 
@@ -151,7 +151,7 @@ int main(int argc, char * argv[]) {
         std::unordered_set<std::string> clusterTags;
 
         if (cluster.clusterNum % 100000 == 0) {
-            std::cout << "\rProgress: " << ((float) cluster.clusterNum / mainClusteringCount) << "%" << std::flush;
+            std::cout << "\rProgress: " << ((float) cluster.clusterNum / ccClusteringCount) << "%" << std::flush;
         }
 
         for (auto dedupAddress : clusterDedupAddresses) {
@@ -179,7 +179,7 @@ int main(int argc, char * argv[]) {
             }
 
             // find the cluster in the reference clustering that contains the current address
-            auto clusterInReferenceData = referenceClustering.getCluster(blocksci::RawAddress{dedupAddress.scriptNum, reprType(dedupAddress.type)});
+            auto clusterInReferenceData = scClustering.getCluster(blocksci::RawAddress{dedupAddress.scriptNum, reprType(dedupAddress.type)});
             if (clusterInReferenceData) {
                 uint32_t referenceClusterSize = clusterInReferenceData->getTypeEquivSize();
 
@@ -215,7 +215,7 @@ int main(int argc, char * argv[]) {
                 }
             }
             else {
-                addressesMissingInReferenceClustering++;
+                addressesMissingInScClustering++;
             }
         }
 
@@ -320,7 +320,7 @@ int main(int argc, char * argv[]) {
     std::cout << "clusterIndex=" << clusterIndex << std::endl;
     std::cout << "btcOnlyClusterCount=" << btcOnlyClusterCount << std::endl;
     std::cout << "sameAsOnForkHeightCount=" << sameAsOnForkHeightCount << std::endl;
-    std::cout << "addressesMissingInReferenceClustering=" << addressesMissingInReferenceClustering << std::endl;
+    std::cout << "addressesMissingInScClustering=" << addressesMissingInScClustering << std::endl;
 
     return 0;
 }
