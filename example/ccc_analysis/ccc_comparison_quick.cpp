@@ -22,30 +22,38 @@ int main(int argc, char * argv[]) {
         "2019-12-31"
     };
 
+    std::fstream fout_ccc_comparison_quick_combined;
+    fout_ccc_comparison_quick_combined.open("/mnt/data/analysis/ccc_comparison_quick_combined.csv", std::ios::out);
+    fout_ccc_comparison_quick_combined
+            << "date,"
+            << "clusterId,"
+            << "clusterSize,"
+            << "clusterCountInSc,"
+            << "merges"
+            << std::endl;
+
     std::vector<std::future<void>> futures;
     std::mutex m;
     uint32_t i = 0;
     uint32_t lastDateIndex = dates.size() - 1;
     for (const auto &date : dates) {
-        futures.push_back(std::async(std::launch::async, [date, &m, i, &lastDateIndex]() {
+        futures.push_back(std::async(std::launch::async, [date, &m, i, &lastDateIndex, &fout_ccc_comparison_quick_combined]() {
             blocksci::Blockchain btc {"/mnt/data/blocksci/btc-bch/" + date + "/btc/config.json"};
             auto ccClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc-bch/btc/" + date, btc.getAccess());
             auto scClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc/" + date, btc.getAccess());
 
             uint32_t ccClusterCount = ccClustering.getClusterCount();
 
-            std::fstream fout_ccc_comparison_quick;
-            fout_ccc_comparison_quick.open("/mnt/data/analysis/ccc_comparison_quick_" + date + ".csv", std::ios::out);
-            std::stringstream ccc_comparison_quick_headers;
+            std::fstream fout_ccc_comparison_quick_single;
+            fout_ccc_comparison_quick_single.open("/mnt/data/analysis/ccc_comparison_quick_" + date + ".csv", std::ios::out);
 
             // write CSV file headers
-            ccc_comparison_quick_headers
-                    << "clusterId,"
-                    << "clusterSize,"
-                    << "clusterCountInSc,"
-                    << "merges"
-                    << std::endl;
-            fout_ccc_comparison_quick << ccc_comparison_quick_headers.str();
+            fout_ccc_comparison_quick_single
+                << "clusterId,"
+                << "clusterSize,"
+                << "clusterCountInSc,"
+                << "merges"
+                << std::endl;
 
             uint32_t ccMerges = 0;
             uint32_t affectedAddresses = 0;
@@ -83,7 +91,16 @@ int main(int argc, char * argv[]) {
                     affectedAddresses += ccClusterSize;
                     ccMerges += clustersInSc.size() - 1;
 
-                    fout_ccc_comparison_quick
+                    fout_ccc_comparison_quick_single
+                        << ccCluster.clusterNum << ","
+                        << ccClusterSize << ","
+                        << clustersInSc.size() << ","
+                        << clustersInSc.size() - 1
+                        << std::endl;
+
+                    std::lock_guard<std::mutex> lock(m);
+                    fout_ccc_comparison_quick_combined
+                        << date << ","
                         << ccCluster.clusterNum << ","
                         << ccClusterSize << ","
                         << clustersInSc.size() << ","
@@ -102,7 +119,7 @@ int main(int argc, char * argv[]) {
                 std::cout << affectedAddresses << " affected addresses" << std::endl << std::endl << std::flush;
             }
 
-            fout_ccc_comparison_quick.close();
+            fout_ccc_comparison_quick_single.close();
         }));
         i++;
     }
@@ -110,6 +127,8 @@ int main(int argc, char * argv[]) {
     for (auto &future : futures) {
         future.get();
     }
+
+    fout_ccc_comparison_quick_combined.close();
 
     return 0;
 }
