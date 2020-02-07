@@ -66,7 +66,7 @@ int main(int argc, char * argv[]) {
     // load clusterings
     auto ccClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc-bch/btc/2017-12-31", btc.getAccess());
     auto scClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc/2017-12-31", btc.getAccess());
-    auto forkHeightClustering = blocksci::ClusterManager("/mnt/data/blocksci/c_python_btc_478558__", btc.getAccess());
+    auto forkHeightClustering = blocksci::ClusterManager("/mnt/data/blocksci/clusterings/btc/478559-forkheight", btc.getAccess());
 
     uint32_t ccClusteringCount = ccClustering.getClusterCount();
 
