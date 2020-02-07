@@ -22,7 +22,6 @@ int main(int argc, char * argv[]) {
         "2019-12-31"
     };
 
-    std::fstream fout_ccc_comparison_quick;
     std::vector<std::future<void>> futures;
     std::mutex m;
     uint32_t i = 0;
@@ -35,15 +34,29 @@ int main(int argc, char * argv[]) {
 
             uint32_t ccClusterCount = ccClustering.getClusterCount();
 
+            std::fstream fout_ccc_comparison_quick;
+            fout_ccc_comparison_quick.open("/mnt/data/analysis/ccc_comparison_quick_" + date + ".csv", std::ios::out);
+            std::stringstream ccc_comparison_quick_headers;
+
+            // write CSV file headers
+            ccc_comparison_quick_headers
+                    << "clusterId,"
+                    << "clusterSize,"
+                    << "clusterCountInSc,"
+                    << "merges"
+                    << std::endl;
+            fout_ccc_comparison_quick << ccc_comparison_quick_headers.str();
+
             uint32_t ccMerges = 0;
             uint32_t affectedAddresses = 0;
             RANGES_FOR (auto ccCluster, ccClustering.getClusters()) {
-                if (i == lastDateIndex && ccCluster.clusterNum % 100000 == 0) {
+                if (i == lastDateIndex && ccCluster.clusterNum % 1000000 == 0) {
                     std::cout << "\rProgress: " << ((float) ccCluster.clusterNum / ccClusterCount) * 100 << "%" << std::flush;
                 }
 
                 uint32_t ccClusterSize = ccCluster.getTypeEquivSize();
                 if (ccClusterSize == 0) {
+                    std::cout << "error: ccClusterSize==0" << std::endl << std::flush;
                     throw std::runtime_error("empty cluster");
                 }
                 if (ccClusterSize == 1) {
@@ -61,13 +74,21 @@ int main(int argc, char * argv[]) {
                         }
                     }
                     else {
+                        std::cout << "error: address not found in SC-clustering" << std::endl << std::flush;
                         throw std::runtime_error("address not found in SC-clustering");
                     }
                 }
 
                 if (clustersInSc.size() > 1) {
-                    affectedAddresses += ccCluster.getSize();
+                    affectedAddresses += ccClusterSize;
                     ccMerges += clustersInSc.size() - 1;
+
+                    fout_ccc_comparison_quick
+                        << ccCluster.clusterNum << ","
+                        << ccClusterSize << ","
+                        << clustersInSc.size() << ","
+                        << clustersInSc.size() - 1
+                        << std::endl;
                 }
             }
 
@@ -80,8 +101,9 @@ int main(int argc, char * argv[]) {
                 std::cout << ccMerges << " merges (counted) found" << std::endl;
                 std::cout << affectedAddresses << " affected addresses" << std::endl << std::endl << std::flush;
             }
+
+            fout_ccc_comparison_quick.close();
         }));
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         i++;
     }
 
