@@ -35,9 +35,23 @@ int main(int argc, char * argv[]) {
         RANGES_FOR(auto tx, block) {
             RANGES_FOR(auto output, tx.outputs()) {
                 addressLastUsageBtc[{output.getAddress().scriptNum, blocksci::dedupType(output.getAddress().type)}] = block.height();
+                if (blocksci::dedupType(output.getAddress().type) == blocksci::DedupAddressType::SCRIPTHASH) {
+                    auto scriptHashData = blocksci::script::ScriptHash(output.getAddress().scriptNum, btc.getAccess());
+                    auto wrappedAddr = scriptHashData.getWrappedAddress();
+                    if (wrappedAddr) {
+                        addressLastUsageBtc[{wrappedAddr->scriptNum, blocksci::dedupType(wrappedAddr->type)}] =  block.height();
+                    }
+                }
             }
             RANGES_FOR(auto input, tx.inputs()) {
                 addressLastUsageBtc[{input.getAddress().scriptNum, blocksci::dedupType(input.getAddress().type)}] = block.height();
+                if (blocksci::dedupType(input.getAddress().type) == blocksci::DedupAddressType::SCRIPTHASH) {
+                    auto scriptHashData = blocksci::script::ScriptHash(input.getAddress().scriptNum, btc.getAccess());
+                    auto wrappedAddr = scriptHashData.getWrappedAddress();
+                    if (wrappedAddr) {
+                        addressLastUsageBtc[{wrappedAddr->scriptNum, blocksci::dedupType(wrappedAddr->type)}] =  block.height();
+                    }
+                }
             }
         }
     }
