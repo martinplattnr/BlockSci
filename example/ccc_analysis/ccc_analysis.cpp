@@ -31,6 +31,8 @@ int main(int argc, char * argv[]) {
     addressLastUsageBtc.reserve(scripts->totalAddressCount());
 
     // get and store block height of last usage for every address
+    std::cout << "### Looking up last usage for every address ###" << std::endl;
+    uint32_t txCount = btc.endTxIndex();
     RANGES_FOR(auto block, btc) {
         RANGES_FOR(auto tx, block) {
             RANGES_FOR(auto output, tx.outputs()) {
@@ -53,8 +55,13 @@ int main(int argc, char * argv[]) {
                     }
                 }
             }
+            if (tx.txNum % 1000000 == 0) {
+                std::cout << "\rProgress: " << ((float) tx.txNum / txCount) * 100 << "%" << std::flush;
+            }
         }
     }
+
+    std::cout << std::endl << std::endl;
 
     auto lastBlockBeforeFork = btc[478558];
     uint32_t lastTxIndexBeforeFork = lastBlockBeforeFork.endTxIndex() - 1;
@@ -134,6 +141,7 @@ int main(int argc, char * argv[]) {
 
     using ScClusterInfo = std::unordered_map<uint32_t, std::tuple<uint32_t, uint32_t, std::unordered_set<std::string>, std::unordered_set<std::string>>>;
 
+    std::cout << "### Starting Main Analysis ###" << std::endl;
     RANGES_FOR (auto ccCluster, ccClustering.getClusters()) {
         uint32_t ccClusterSize = ccCluster.getTypeEquivSize();
         auto ccClusterDedupAddrs = ccCluster.getDedupAddresses();
