@@ -45,6 +45,8 @@ int main(int argc, char * argv[]) {
             RANGES_FOR(auto tx, block) {
                 RANGES_FOR(auto output, tx.outputs()) {
                     addressLastUsageBtc[{output.getAddress().scriptNum, blocksci::dedupType(output.getAddress().type)}] = block.height();
+
+                    // handle wrapped addresses
                     if (blocksci::dedupType(output.getAddress().type) == blocksci::DedupAddressType::SCRIPTHASH) {
                         auto scriptHashData = blocksci::script::ScriptHash(output.getAddress().scriptNum, btc.getAccess());
                         auto wrappedAddr = scriptHashData.getWrappedAddress();
@@ -55,6 +57,8 @@ int main(int argc, char * argv[]) {
                 }
                 RANGES_FOR(auto input, tx.inputs()) {
                     addressLastUsageBtc[{input.getAddress().scriptNum, blocksci::dedupType(input.getAddress().type)}] = block.height();
+
+                    // handle wrapped addresses
                     if (blocksci::dedupType(input.getAddress().type) == blocksci::DedupAddressType::SCRIPTHASH) {
                         auto scriptHashData = blocksci::script::ScriptHash(input.getAddress().scriptNum, btc.getAccess());
                         auto wrappedAddr = scriptHashData.getWrappedAddress();
@@ -63,6 +67,8 @@ int main(int argc, char * argv[]) {
                         }
                     }
                 }
+
+                // progress bar
                 if (tx.txNum % 1000000 == 0) {
                     std::cout << "\rProgress: " << ((float) tx.txNum / txCount) * 100 << "%" << std::flush;
                 }
@@ -85,11 +91,11 @@ int main(int argc, char * argv[]) {
 
         // open output files
         std::fstream fout_ccc_clusters, fout_ccc_clusters_relevant, fout_cluster_components, fout_cluster_components_relevant, fout_cluster_tags;
-        fout_ccc_clusters.open("/mnt/data/analysis/ccc_analysis/ccc_clusters_all" + date + ".csv", std::ios::out | std::ios::app);
-        fout_ccc_clusters_relevant.open("/mnt/data/analysis/ccc_analysis/ccc_clusters_relevant" + date + ".csv", std::ios::out | std::ios::app);
-        fout_cluster_components.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_components_all" + date + ".csv", std::ios::out | std::ios::app);
-        fout_cluster_components_relevant.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_components_relevant" + date + ".csv", std::ios::out | std::ios::app);
-        fout_cluster_tags.open("/mnt/data/analysis/ccc_analysis/ccc_cluster_tags" + date + ".csv", std::ios::out | std::ios::app);
+        fout_ccc_clusters.open("/mnt/data/analysis/ccc_analysis/periods/ccc_clusters_all" + date + ".csv", std::ios::out | std::ios::app);
+        fout_ccc_clusters_relevant.open("/mnt/data/analysis/ccc_analysis/periods/ccc_clusters_relevant" + date + ".csv", std::ios::out | std::ios::app);
+        fout_cluster_components.open("/mnt/data/analysis/ccc_analysis/periods/ccc_cluster_components_all" + date + ".csv", std::ios::out | std::ios::app);
+        fout_cluster_components_relevant.open("/mnt/data/analysis/ccc_analysis/periods/ccc_cluster_components_relevant" + date + ".csv", std::ios::out | std::ios::app);
+        fout_cluster_tags.open("/mnt/data/analysis/ccc_analysis/periods/ccc_cluster_tags" + date + ".csv", std::ios::out | std::ios::app);
 
         std::stringstream ccc_clusters_headers, cluster_components_headers;
 
@@ -167,7 +173,7 @@ int main(int argc, char * argv[]) {
             std::unordered_set<std::string> ccClusterTags;
 
             if (ccCluster.clusterNum % 100000 == 0) {
-                std::cout << "\rProgress: " << ((float) ccCluster.clusterNum / ccClusteringCount) << "%" << std::flush;
+                std::cout << "\rProgress: " << ((float) ccCluster.clusterNum / ccClusteringCount) * 100 << "%" << std::flush;
             }
 
             for (auto ccDedupAddr : ccClusterDedupAddrs) {
