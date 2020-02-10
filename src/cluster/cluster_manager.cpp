@@ -241,10 +241,11 @@ namespace blocksci {
                     {
                         std::lock_guard<std::mutex> lock(mtx);
                         logfile
+                            << block.height() << ","
                             << tx.txNum << ","
                             << pairs.size() << ","
                             << mergesEffective
-                            << std::endl;
+                            << "\n";
                     }
 
                     progressBar.update(txNum);
@@ -256,7 +257,7 @@ namespace blocksci {
 
         for (auto &chain : chains) {
             logfile.open ("/mnt/data/analysis/bernhard/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
-            logfile << "txnum,merge_opportunities,merges" << std::endl;
+            logfile << "block,txnum,merge_opportunities,merges" << std::endl;
 
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
             chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
