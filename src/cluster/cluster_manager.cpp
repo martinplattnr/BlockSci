@@ -32,6 +32,8 @@
 #include <fstream>
 #include <future>
 #include <map>
+#include <mutex>
+#include <thread>
 
 namespace {
     template <typename Job>
@@ -211,6 +213,7 @@ namespace blocksci {
         linkScripthashNested(access, ds);
 
         std::ofstream logfile;
+        std::mutex mtx;
 
         auto extract = [&](const BlockRange &blocks, int threadNum) {
             auto progressThread = static_cast<int>(0);
@@ -231,11 +234,15 @@ namespace blocksci {
                         }
                         ds.link_addresses(pair.first, pair.second);
                     }
-                    logfile
-                        << tx.txNum << ","
-                        << pairs.size() << ","
-                        << mergesEffective
-                        << std::endl;
+
+                    {
+                        std::lock_guard<std::mutex> lock(mtx);
+                        logfile
+                            << tx.txNum << ","
+                            << pairs.size() << ","
+                            << mergesEffective
+                            << std::endl;
+                    }
 
                     progressBar.update(txNum);
                     txNum++;
