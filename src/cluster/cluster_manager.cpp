@@ -213,6 +213,9 @@ namespace blocksci {
         linkScripthashNested(access, ds);
 
         std::ofstream logfile;
+        const size_t bufsize = 1024 * 1024 * 128;
+        std::unique_ptr<char[]> buf(new char[bufsize]);
+        logfile.rdbuf()->pubsetbuf(buf.get(), bufsize);
         std::mutex mtx;
 
         auto extract = [&](const BlockRange &blocks, int threadNum) {
