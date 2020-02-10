@@ -210,6 +210,8 @@ namespace blocksci {
         std::cout << "Linking nested script-hash addresses" << std::endl;
         linkScripthashNested(access, ds);
 
+        std::ofstream logfile;
+
         auto extract = [&](const BlockRange &blocks, int threadNum) {
             auto progressThread = static_cast<int>(0);
             auto progressBar = makeProgressBar(blocks.endTxIndex() - blocks.firstTxIndex(), [=]() {});
@@ -220,9 +222,21 @@ namespace blocksci {
             for (auto block : blocks) {
                 for (auto tx : block) {
                     auto pairs = processTransaction(tx, changeHeuristic, ignoreCoinJoin);
+                    uint32_t mergesEffective = 0;
                     for (auto &pair : pairs) {
+                        uint32_t cluster1 = ds.find(ds.addressIndex(pair.first));
+                        uint32_t cluster2 = ds.find(ds.addressIndex(pair.second));
+                        if (cluster1 != cluster2) {
+                            mergesEffective++;
+                        }
                         ds.link_addresses(pair.first, pair.second);
                     }
+                    logfile
+                        << tx.txNum << ","
+                        << pairs.size() << ","
+                        << mergesEffective
+                        << std::endl;
+
                     progressBar.update(txNum);
                     txNum++;
                 }
@@ -231,8 +245,13 @@ namespace blocksci {
         };
 
         for (auto &chain : chains) {
+            logfile.open ("/mnt/data/analysis/bernhard/cluster_log_" + chain->getAccess().config.chainConfig.coinName + ".txt");
+            logfile << "txnum,merge_opportunities,merges" << std::endl;
+
             std::cout << "Clustering using " << chain->getAccess().config.chainConfig.coinName << " data (" << chain->size() << " blocks)"  << std::endl;
             chain->mapReduce<int>(extract, [](int &a,int &) -> int & {return a;});
+
+            logfile.close();
         }
 
         std::cout << "Performing post-processing: resolving cluster nums for every address" << std::endl;
