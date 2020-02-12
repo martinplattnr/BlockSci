@@ -10,6 +10,7 @@ add_executable(common_addresses_between_chains EXCLUDE_FROM_ALL common_addresses
 add_executable(common_addrs_forks EXCLUDE_FROM_ALL common_addrs_forks.cpp)
 add_executable(get_addresses_by_scc_num EXCLUDE_FROM_ALL get_addresses_by_scc_num.cpp)
 add_executable(count_active_addresses EXCLUDE_FROM_ALL count_active_addresses.cpp)
+add_executable(hidden_wealth EXCLUDE_FROM_ALL hidden_wealth.cpp)
 
 target_link_libraries( ccc_analysis blocksci blocksci_internal)
 target_link_libraries( clustering_count_edges blocksci blocksci_internal)
@@ -20,3 +21,4 @@ target_link_libraries( common_addresses_between_chains blocksci blocksci_interna
 target_link_libraries( common_addrs_forks blocksci blocksci_internal)
 target_link_libraries( get_addresses_by_scc_num blocksci blocksci_internal)
 target_link_libraries( count_active_addresses blocksci blocksci_internal)
+target_link_libraries( hidden_wealth blocksci blocksci_internal)
