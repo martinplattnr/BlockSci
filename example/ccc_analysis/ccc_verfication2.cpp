@@ -107,6 +107,8 @@ int main(int argc, char * argv[]) {
         std::cout << "Merge events between BTC T" << i-1 << "and T" << i << ":" << btcMergesPerPeriod[i] << std::endl;
     }
 
+    uint32_t userWhereNotAllMergesAreFoundUntilTn = 0;
+    uint32_t ccClustersWithScClusters = 0;
     uint32_t cccMergeCount = 0;
     std::vector<uint32_t> cccMergesInBtcCount(clusterings.size(), 0);
 
@@ -131,6 +133,14 @@ int main(int argc, char * argv[]) {
                     clustersInBtc[i].insert(clusterInBtc->clusterNum);
                 }
             }
+        }
+        if (clustersInBtc[0].size() > 1) {
+            ccClustersWithScClusters++;
+        }
+
+        if (clustersInBtc[0].size() > 1 && clustersInBtc[clusterings.size()-1].size() > 1) {
+            // userWhereNotAllMergesAreFoundUntilT4=99559
+            userWhereNotAllMergesAreFoundUntilTn++;
         }
 
         cccMergeCount += clustersInBtc[0].size() - 1;
@@ -169,6 +179,9 @@ int main(int argc, char * argv[]) {
     }
 
     fout_merge_counts << "ccc,btc,0," << cccMergeCount << std::endl;
+
+    std::cout << "userWhereNotAllMergesAreFoundUntilTn=" << userWhereNotAllMergesAreFoundUntilTn << std::endl;
+    std::cout << "ccClustersWithScClusters=" << ccClustersWithScClusters << std::endl;
 
     return 0;
 }
