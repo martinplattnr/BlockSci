@@ -129,15 +129,20 @@ public:
         /** Default value of ScriptDataBase.txFirstSpent is (std::numeric_limits<uint32_t>::max()) */
         bool isFirstSpend = header->txFirstSpent == std::numeric_limits<uint32_t>::max();
 
+        /** Can occur when a wrapped input is serialized before the top-level input */
+        bool isNewerFirstSpend = txNum < header->txFirstSpent;
+
         /** Default value of ScriptDataBase.txFirstSeen is the txNum of the transaction that contained the script */
         bool isNewerFirstSeen = outputTxNum < header->txFirstSeen;
 
         if (isNewerFirstSeen) {
             header->txFirstSeen = outputTxNum;
         }
+        if (isNewerFirstSpend) {
+            header->txFirstSpent = txNum;
+        }
         if (isFirstSpend) {
             auto &file = std::get<ScriptFile<dedupType(type)>>(scriptFiles);
-            header->txFirstSpent = txNum;
             serializeInputImp(input, file);
         }
     }
