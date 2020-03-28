@@ -33,6 +33,9 @@ int main(int argc, char * argv[]) {
 
 
     for (auto& pair : commonAddrs) {
+        uint64_t commonBalanceBtc = 0;
+        uint64_t commonBalanceBch = 0;
+
         auto& dedupType = pair.first;
         auto& commonCount = pair.second;
 
@@ -61,6 +64,9 @@ int main(int argc, char * argv[]) {
             // !firstTxIndexBtc just here to test
             //if (!firstTxIndexBtc && firstTxIndexBch && *firstTxIndexBch > lastTxIndexBeforeFork) {
             if (firstTxIndexBch && *firstTxIndexBch > lastTxIndexBeforeFork) {
+                commonBalanceBtc += scriptInBtc.calculateBalance(-1);
+                commonBalanceBch += scriptInBch.calculateBalance(-1);
+
                 ++commonCount;
                 //std::cout << scriptInBtc.toString() << std::endl;
             }
@@ -69,6 +75,10 @@ int main(int argc, char * argv[]) {
                           << std::flush;
             }
         }
+
+        std::cout << "commonBalanceBtc=" << commonBalanceBtc << std::endl;
+        std::cout << "commonBalanceBch=" << commonBalanceBch << std::endl;
+        std::cout << "commonCount=" << commonCount << std::endl;
     }
 
     /*
