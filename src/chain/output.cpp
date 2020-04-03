@@ -115,9 +115,6 @@ namespace blocksci {
 
         if (spendingTxIndexTmp < maxTxLoaded) {
             spendingTxIndex = spendingTxIndexTmp;
-            if (spendingTxIndexTmp != inout->getLinkedTxNum()) {
-                //std::cout << "Output from fork has another spending tx: " << spendingTxIndexTmp << std::endl;
-            }
         } else {
             spendingTxIndex = 0;
         }
