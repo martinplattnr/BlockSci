@@ -277,25 +277,34 @@ namespace blocksci {
         bool hasParentChain() const {
             return this->parentChain ? true : false;
         }
-        
+
         BlockHeight getBlockHeight(uint32_t txIndex) const {
             reorgCheck();
             if (errorOnReorg && txIndex >= _maxLoadedTx) {
                 throw std::out_of_range("Transaction index out of range");
             }
 
-            auto currentBlock = getBlock(0);
-            while (txIndex >= currentBlock->firstTxIndex + currentBlock->txCount) {
-                currentBlock++;
-
-                // if first forked block is reached, get new block pointer that points to the forked chain
-                if (static_cast<BlockHeight>(currentBlock->height) == firstForkedBlockHeight + 1) {
-                    currentBlock = getBlock(firstForkedBlockHeight);
-                }
+            // check if forked chain is loaded upto firstForkedBlockHeight
+            if (parentChain && maxHeight <= firstForkedBlockHeight) {
+                return parentChain->getBlockHeight(txIndex);
             }
 
-            // -1 to adjust for RawBlock.height, which is 1-indexed, but this method has always returned 0-indexed block heights
-            return static_cast<BlockHeight>(currentBlock->height - 1);
+            // start with the first forked block (block 0 for non-forked chain)
+            auto blockBegin = blockFile[firstForkedBlockHeight];
+            auto blockEnd = blockFile[static_cast<OffsetType>(maxHeight) - 1] + 1;
+            auto it = std::upper_bound(blockBegin, blockEnd, txIndex, [](uint32_t index, const RawBlock &b) {
+                return index < b.firstTxIndex;
+            });
+
+            // pass query to parent chain if txIndex is in pre-fork block
+            if (parentChain && it == blockBegin && blockBegin->firstTxIndex > txIndex) {
+                return parentChain->getBlockHeight(txIndex);
+            }
+
+            it--;
+
+            // + firstForkedBlockHeight is needed to correct that forked chains begin with blockFile[firstForkedBlockHeight]
+            return static_cast<BlockHeight>(std::distance(blockBegin, it) + firstForkedBlockHeight);
         }
 
         const RawBlock *getBlock(BlockHeight blockHeight) const {
