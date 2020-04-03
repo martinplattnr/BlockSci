@@ -33,6 +33,9 @@ int64_t calculateSatoshiDiceTotalOutputValue(BlockRange &chain, uint32_t address
 uint32_t calculateNonzeroLocktimeRandom(Blockchain &chain, const std::vector<uint32_t> &indexes);
 int64_t calculateMaxFeeRandom(Blockchain &chain, const std::vector<uint32_t> &indexes);
 
+uint32_t calculateMaxAddrFirstSeen(BlockRange &chain);
+uint32_t calculateMaxAddrFirstRevealed(BlockRange &chain);
+
 template <typename Func, typename... Args>
 auto timeFunc(std::string name, Func func, Args&& ...args) -> decltype(func(args...));
 
@@ -78,6 +81,9 @@ int main(int argc, char * argv[]) {
 
     auto traversal1 = timeFunc("calculateUniqueLocktimeChangeSingleThreaded", calculateUniqueLocktimeChangeSingleThreaded, range);
     auto traversal2 = timeFunc("calculateUniqueLocktimeChangeMultithreaded", calculateUniqueLocktimeChangeMultithreaded, range);
+
+    auto maxFirstSeen = timeFunc("calculateMaxAddrFirstSeen", calculateMaxAddrFirstSeen, range);
+    auto maxFirstRevealed = timeFunc("calculateMaxAddrFirstRevealed", calculateMaxAddrFirstRevealed, range);
 
     auto satoshiDiceAddress = getAddressFromString("1dice97ECuByXAvqXpaYzSaQuPVvrtmz6", chain.getAccess());
     int64_t maxSatoshiDiceOutput = -1;
@@ -263,6 +269,54 @@ uint32_t calculateUniqueLocktimeChangeMultithreaded(BlockRange &chain) {
     auto combine = [](uint32_t &a, uint32_t &b) -> uint32_t & { a += b; return a; };
 
     return chain.mapReduce<uint32_t>(extract, combine);
+}
+
+uint32_t calculateMaxAddrFirstSeen(BlockRange &chain) {
+    uint32_t maxFirstSeenIndex = 0;
+    for(auto block : chain) {
+        RANGES_FOR(auto tx, block) {
+            for(auto output : tx.outputs()) {
+                if(output.isSpent()) {
+                    continue;
+                }
+                auto firstSeenIndex = output.getAddress().getBaseScript().getFirstTxIndex().value_or(0);
+                if (firstSeenIndex > maxFirstSeenIndex) {
+                    maxFirstSeenIndex = firstSeenIndex;
+                }
+            }
+            for(auto input : tx.inputs()) {
+                auto firstSeenIndex = input.getAddress().getBaseScript().getFirstTxIndex().value_or(0);
+                if (firstSeenIndex > maxFirstSeenIndex) {
+                    maxFirstSeenIndex = firstSeenIndex;
+                }
+            }
+        }
+    }
+    return maxFirstSeenIndex;
+}
+
+uint32_t calculateMaxAddrFirstRevealed(BlockRange &chain) {
+    uint32_t maxFirstRevealedIndex = 0;
+    for(auto block : chain) {
+        RANGES_FOR(auto tx, block) {
+            for(auto output : tx.outputs()) {
+                if(output.isSpent()) {
+                    continue;
+                }
+                auto firstRevealedIndex = output.getAddress().getBaseScript().getTxRevealedIndex().value_or(0);
+                if (firstRevealedIndex > maxFirstRevealedIndex) {
+                    maxFirstRevealedIndex = firstRevealedIndex;
+                }
+            }
+            for(auto input : tx.inputs()) {
+                auto firstRevealedIndex = input.getAddress().getBaseScript().getTxRevealedIndex().value_or(0);
+                if (firstRevealedIndex > maxFirstRevealedIndex) {
+                    maxFirstRevealedIndex = firstRevealedIndex;
+                }
+            }
+        }
+    }
+    return maxFirstRevealedIndex;
 }
 
 template <typename Func, typename... Args>
