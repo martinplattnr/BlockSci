@@ -138,9 +138,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::PUBKEY>(const DataAccess
         SHA256_Update(&sha256, &data->address, sizeof(uint160));
         SHA256_Update(&sha256, &data->pubkey, sizeof(RawPubkey));
         SHA256_Update(&sha256, &data->hasPubkey, sizeof(bool));
-        SHA256_Update(&sha256, &data->txFirstSeen, 4);
-        SHA256_Update(&sha256, &data->txFirstSpent, 4);
-        SHA256_Update(&sha256, &data->typesSeen, 4);
+
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
     }
 
     SHA256_Final(reinterpret_cast<unsigned char *>(&hash), &sha256);
@@ -165,9 +167,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::SCRIPTHASH>(const DataAc
         SHA256_Update(&sha256, &data->hash160, sizeof(uint160));
         SHA256_Update(&sha256, &data->hash256, sizeof(uint256));
         SHA256_Update(&sha256, &data->isSegwit, sizeof(bool));
-        SHA256_Update(&sha256, &data->txFirstSeen, 4);
-        SHA256_Update(&sha256, &data->txFirstSpent, 4);
-        SHA256_Update(&sha256, &data->typesSeen, 4);
+
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
         SHA256_Update(&sha256, &data->wrappedAddress, sizeof(RawAddress));
     }
 
@@ -189,6 +193,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::MULTISIG>(const DataAcce
     auto scriptCount = scripts->scriptCount(dedupType);
 
     for(uint32_t i = 1; i <= scriptCount; ++i) {
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
+
         auto data = scripts->getScriptData<dedupType>(i);
         SHA256_Update(&sha256, data, data->realSize());
     }
@@ -211,6 +220,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::NULL_DATA>(const DataAcc
     auto scriptCount = scripts->scriptCount(dedupType);
 
     for(uint32_t i = 1; i <= scriptCount; ++i) {
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
+
         auto data = scripts->getScriptData<dedupType>(i);
         SHA256_Update(&sha256, data, data->realSize());
     }
@@ -233,6 +247,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::NONSTANDARD>(const DataA
     auto scriptCount = scripts->scriptCount(dedupType);
 
     for(uint32_t i = 1; i <= scriptCount; ++i) {
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
+
         auto data = scripts->getScriptData<dedupType>(i);
         auto script_data = std::get<0>(data);
         SHA256_Update(&sha256, script_data, script_data->realSize());
@@ -260,6 +279,11 @@ uint256 compute_scriptdata_hash<DedupAddressType::Enum::WITNESS_UNKNOWN>(const D
     auto scriptCount = scripts->scriptCount(dedupType);
 
     for(uint32_t i = 1; i <= scriptCount; ++i) {
+        auto header = scripts->getScriptHeader(i, dedupType);
+        SHA256_Update(&sha256, &header->txFirstSeen, 4);
+        SHA256_Update(&sha256, &header->txFirstSpent, 4);
+        SHA256_Update(&sha256, &header->typesSeen, 4);
+
         auto data = scripts->getScriptData<dedupType>(i);
         auto script_data = std::get<0>(data);
         SHA256_Update(&sha256, script_data, script_data->realSize());
