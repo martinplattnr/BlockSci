@@ -179,9 +179,8 @@ uint256 compute_txdata_hash(const Blockchain &chain) {
                 auto addrType = input.getType();
                 SHA256_Update(&sha256, &addrType, sizeof(addrType));
 
-                auto addr = input.getAddress();
-                SHA256_Update(&sha256, &addr.scriptNum, sizeof(addr.scriptNum));
-                SHA256_Update(&sha256, &addr.type, sizeof(addr.type));
+                auto addrString = input.getAddress().toString();
+                SHA256_Update(&sha256, addrString.data(), addrString.size());
 
                 auto value = input.getValue();
                 SHA256_Update(&sha256, &value, sizeof(value));
@@ -211,9 +210,8 @@ uint256 compute_txdata_hash(const Blockchain &chain) {
                 auto addrType = output.getType();
                 SHA256_Update(&sha256, &addrType, sizeof(addrType));
 
-                auto addr = output.getAddress();
-                SHA256_Update(&sha256, &addr.scriptNum, sizeof(addr.scriptNum));
-                SHA256_Update(&sha256, &addr.type, sizeof(addr.type));
+                auto addrString = output.getAddress().toString();
+                SHA256_Update(&sha256, addrString.data(), addrString.size());
 
                 auto value = output.getValue();
                 SHA256_Update(&sha256, &value, sizeof(value));
