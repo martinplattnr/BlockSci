@@ -25,9 +25,9 @@
 using namespace blocksci;
 
 /**
- Compute a checksum over block data.
+ Compute a checksum over raw block data.
  */
-uint256 compute_block_hash(const ChainAccess &access) {
+uint256 compute_rawblock_hash(const ChainAccess &access) {
     uint256 hash;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -52,9 +52,57 @@ uint256 compute_block_hash(const ChainAccess &access) {
 }
 
 /**
- Compute a checksum over core transaction data.
+ Compute a checksum over block data.
  */
-uint256 compute_txdata_hash(const ChainAccess &access) {
+uint256 compute_block_hash(const Blockchain &chain) {
+    uint256 hash;
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    for (const auto& block : chain) {
+        auto blockHash = block.getHash();
+        SHA256_Update(&sha256, blockHash.begin(), blockHash.size());
+
+        auto height = block.height();
+        SHA256_Update(&sha256, &height, sizeof(height));
+
+        auto version = block.version();
+        SHA256_Update(&sha256, &version, sizeof(version));
+
+        auto timestamp = block.timestamp();
+        SHA256_Update(&sha256, &timestamp, sizeof(timestamp));
+
+        auto bits = block.bits();
+        SHA256_Update(&sha256, &bits, sizeof(bits));
+
+        auto nonce = block.nonce();
+        SHA256_Update(&sha256, &nonce, sizeof(nonce));
+
+        auto baseSize = block.baseSize();
+        SHA256_Update(&sha256, &baseSize, sizeof(baseSize));
+
+        auto totalSize = block.totalSize();
+        SHA256_Update(&sha256, &totalSize, sizeof(totalSize));
+
+        auto virtualSize = block.virtualSize();
+        SHA256_Update(&sha256, &virtualSize, sizeof(virtualSize));
+
+        auto weight = block.weight();
+        SHA256_Update(&sha256, &weight, sizeof(weight));
+
+        auto sizeBytes = block.sizeBytes();
+        SHA256_Update(&sha256, &sizeBytes, sizeof(sizeBytes));
+
+        auto coinbase = block.getCoinbase();
+        SHA256_Update(&sha256, coinbase.data(), coinbase.size());
+    }
+    SHA256_Final(reinterpret_cast<unsigned char *>(&hash), &sha256);
+    return hash;
+}
+
+/**
+ Compute a checksum over core raw transaction data.
+ */
+uint256 compute_txrawdata_hash(const ChainAccess &access) {
     uint256 hash;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -62,6 +110,115 @@ uint256 compute_txdata_hash(const ChainAccess &access) {
         // no additional padding in RawTransaction, can simply hash struct
         const RawTransaction *tx = access.getTx(i);
         SHA256_Update(&sha256, tx, tx->serializedSize());
+    }
+    SHA256_Final(reinterpret_cast<unsigned char *>(&hash), &sha256);
+    return hash;
+}
+
+/**
+ Compute a checksum over core transaction data.
+ */
+uint256 compute_txdata_hash(const Blockchain &chain) {
+    uint256 hash;
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    for (const auto& block : chain) {
+        for (const auto& tx : block) {
+            auto baseSize = tx.baseSize();
+            SHA256_Update(&sha256, &baseSize, sizeof(baseSize));
+
+            auto totalSize = tx.totalSize();
+            SHA256_Update(&sha256, &totalSize, sizeof(totalSize));
+
+            auto virtualSize = tx.virtualSize();
+            SHA256_Update(&sha256, &virtualSize, sizeof(virtualSize));
+
+            auto sizeBytes = tx.sizeBytes();
+            SHA256_Update(&sha256, &sizeBytes, sizeof(sizeBytes));
+
+            auto weight = tx.weight();
+            SHA256_Update(&sha256, &weight, sizeof(weight));
+
+            auto fee = tx.fee();
+            SHA256_Update(&sha256, &fee, sizeof(fee));
+
+            auto locktime = tx.locktime();
+            SHA256_Update(&sha256, &locktime, sizeof(locktime));
+
+            auto inputCount = tx.inputCount();
+            SHA256_Update(&sha256, &inputCount, sizeof(inputCount));
+
+            auto outputCount = tx.outputCount();
+            SHA256_Update(&sha256, &outputCount, sizeof(outputCount));
+
+            auto isCoinbase = tx.isCoinbase();
+            SHA256_Update(&sha256, &isCoinbase, sizeof(isCoinbase));
+
+            auto hash = tx.getHash();
+            SHA256_Update(&sha256, hash.begin(), hash.size());
+
+            auto version = tx.getVersion();
+            SHA256_Update(&sha256, &version, sizeof(version));
+
+            auto height = tx.getBlockHeight();
+            SHA256_Update(&sha256, &height, sizeof(height));
+
+            for (const auto& input : tx.inputs()) {
+                auto txIndex = input.txIndex();
+                SHA256_Update(&sha256, &txIndex, sizeof(txIndex));
+
+                auto inputIndex = input.inputIndex();
+                SHA256_Update(&sha256, &inputIndex, sizeof(inputIndex));
+
+                auto sequenceNumber = input.sequenceNumber();
+                SHA256_Update(&sha256, &sequenceNumber, sizeof(sequenceNumber));
+
+                auto age = input.age();
+                SHA256_Update(&sha256, &age, sizeof(age));
+
+                auto addrType = input.getType();
+                SHA256_Update(&sha256, &addrType, sizeof(addrType));
+
+                auto addr = input.getAddress();
+                SHA256_Update(&sha256, &addr.scriptNum, sizeof(addr.scriptNum));
+                SHA256_Update(&sha256, &addr.type, sizeof(addr.type));
+
+                auto value = input.getValue();
+                SHA256_Update(&sha256, &value, sizeof(value));
+
+                auto spentTxIndex = input.spentTxIndex();
+                SHA256_Update(&sha256, &spentTxIndex, sizeof(spentTxIndex));
+            }
+
+            for (const auto& output : tx.outputs()) {
+                auto height = output.getBlockHeight();
+                SHA256_Update(&sha256, &height, sizeof(height));
+
+                auto spendingTxIndex = output.getSpendingTxIndex();
+                if (spendingTxIndex) {
+                    SHA256_Update(&sha256, &spendingTxIndex, sizeof(spendingTxIndex));
+                }
+
+                auto txIndex = output.txIndex();
+                SHA256_Update(&sha256, &txIndex, sizeof(txIndex));
+
+                auto outputIndex = output.outputIndex();
+                SHA256_Update(&sha256, &outputIndex, sizeof(outputIndex));
+
+                auto isSpent = output.isSpent();
+                SHA256_Update(&sha256, &isSpent, sizeof(isSpent));
+
+                auto addrType = output.getType();
+                SHA256_Update(&sha256, &addrType, sizeof(addrType));
+
+                auto addr = output.getAddress();
+                SHA256_Update(&sha256, &addr.scriptNum, sizeof(addr.scriptNum));
+                SHA256_Update(&sha256, &addr.type, sizeof(addr.type));
+
+                auto value = output.getValue();
+                SHA256_Update(&sha256, &value, sizeof(value));
+            }
+        }
     }
     SHA256_Final(reinterpret_cast<unsigned char *>(&hash), &sha256);
     return hash;
@@ -347,13 +504,24 @@ int main(int argc, char * argv[]) {
 
     std::cout << "Chain contains " << chain.size() << " blocks, " << chain.getAccess().getChain().txCount() << " txes, " << chain.getAccess().getChain().inputCount() << " inputs, " << chain.getAccess().getChain().outputCount() << " outputs." << std::endl;
 
-    std::cout << std::endl << "Blocks:" << std::endl;
-    auto block_hash = compute_block_hash(chainAccess);
+
+    std::cout << std::endl << "Blocks (raw data):" << std::endl;
+    auto rawblock_hash = compute_rawblock_hash(chainAccess);
+    std::cout << rawblock_hash.GetHex() << std::endl;
+
+    std::cout << std::endl << "Blocks (API):" << std::endl;
+    auto block_hash = compute_block_hash(chain);
     std::cout << block_hash.GetHex() << std::endl;
 
-    std::cout << std::endl << "Transactions:" << std::endl;
-    auto txdata_hash = compute_txdata_hash(chainAccess);
+
+    std::cout << std::endl << "Transactions (API):" << std::endl;
+    auto txdata_hash = compute_txdata_hash(chain);
     std::cout << txdata_hash.GetHex() << std::endl;
+
+    std::cout << std::endl << "Transactions (raw data):" << std::endl;
+    auto txrawdata_hash = compute_txrawdata_hash(chainAccess);
+    std::cout << txrawdata_hash.GetHex() << std::endl;
+
 
     std::cout << std::endl << "Additional data:" << std::endl;
     auto additional_data_hash = compute_additional_data_hash(dataAccess);
