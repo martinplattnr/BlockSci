@@ -27,8 +27,8 @@ blocksci::OffsetType AddressWriter::serializeNewOutput(const AnyScriptOutput &ou
     return mpark::visit([&](auto &scriptOutput) { return this->serializeNewOutput(scriptOutput, txNum, topLevel); }, output.wrapped);
 }
 
-void AddressWriter::serializeExistingOutput(const AnyScriptOutput &output, bool topLevel) {
-    mpark::visit([&](auto &scriptOutput) { return this->serializeExistingOutput(scriptOutput, topLevel); }, output.wrapped);
+void AddressWriter::serializeExistingOutput(const AnyScriptOutput &output, uint32_t txNum, bool topLevel) {
+    mpark::visit([&](auto &scriptOutput) { return this->serializeExistingOutput(scriptOutput, txNum, topLevel); }, output.wrapped);
 }
 
 void AddressWriter::serializeInput(const AnyScriptInput &input, uint32_t txNum, uint32_t outputTxNum) {
@@ -108,7 +108,7 @@ void AddressWriter::serializeWrappedInput(const ScriptInputData<AddressType::Enu
     if (data.wrappedScriptOutput.isNew()) {
         serializeNewOutput(data.wrappedScriptOutput, txNum, false);
     } else {
-        serializeExistingOutput(data.wrappedScriptOutput, false);
+        serializeExistingOutput(data.wrappedScriptOutput, txNum, false);
     }
     
     serializeInput(*data.wrappedScriptInput, txNum, outputTxNum);
@@ -123,7 +123,7 @@ void AddressWriter::serializeWrappedInput(const ScriptInputData<AddressType::Enu
     if (data.wrappedScriptOutput.isNew()) {
         serializeNewOutput(data.wrappedScriptOutput, txNum, false);
     } else {
-        serializeExistingOutput(data.wrappedScriptOutput, false);
+        serializeExistingOutput(data.wrappedScriptOutput, txNum, false);
     }
     serializeInput(*data.wrappedScriptInput, txNum, outputTxNum);
     serializeWrappedInput(*data.wrappedScriptInput, txNum, outputTxNum);
