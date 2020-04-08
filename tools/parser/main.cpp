@@ -437,8 +437,8 @@ void updateMultipleChains(const filesystem::path &configFilePath) {
 
     while (currentDc != nullptr) {
         if (isInitialParse && currentDc->childDataConfiguration != nullptr) {
-            // parse upto height firstForkedBlockHeight - 1
-            updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight - 1);
+            // parse upto fork height (incl. last pre-fork block)
+            updateChain(currentDc->configPath, true, currentDc->childDataConfiguration->chainConfig.firstForkedBlockHeight);
 
             // copy relevant directories/files from the parent chain to the child chain directory
             std::cout << "Copying parent's chain/ directory to child's chain/ directory" << std::endl;

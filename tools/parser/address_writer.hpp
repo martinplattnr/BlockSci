@@ -125,7 +125,7 @@ public:
          * When parsing the forked chain, this address is correctly resolved as "existing", but this causes that ScriptHeader.txFirstSeen and ScriptHeader.typesSeen is not updated.
          */
         auto header = headerFile.getDataAtIndex(output.scriptNum - 1);
-        if ( ! header->hasBeenSeen()) {
+        if (txNum < header->txFirstSeen) {
             header->txFirstSeen = txNum;
             // typesSeen is set in serializeOutputImp()
         }
