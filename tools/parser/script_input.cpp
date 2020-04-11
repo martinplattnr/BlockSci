@@ -94,19 +94,28 @@ ScriptInputData<blocksci::AddressType::Enum::PUBKEYHASH>::ScriptInputData(const 
         auto pc = scriptView.begin();
         blocksci::opcodetype opcode = blocksci::OP_0;
         ranges::iterator_range<const unsigned char *> vchSig;
-        ranges::iterator_range<const unsigned char *> vchSig2;
+
         // tx 1b008139698117162a9539295ada34fc745f06f733b5f400674f15bf47e720a5 contains a OP_0 before the signature
         // tx bcd1835ebd7e0d44abcab84ec64a488eefd9fa048d2e11a5a24b197838d8af11 (testnet) contains an Push(13) before the real data
         // tx 4c65efdf4e60e9c1bbc1a1a452c3c758789efc7894bff9ed694305eb9c389e7b (testnet) super weird
-        
-        while (scriptView.GetOp(pc, opcode, vchSig2)) {
-            if (vchSig2.size() == 65 || vchSig2.size() == 33) {
-                vchSig = vchSig2;
-                break;
+        // tx 054291a582fe7f34d8247a8760232ce6ac11d6657c51cb961856029fada2749a (bch mainnet): schnorr signatures can (as pubkeys) have a length of 65 bytes
+
+        // collect all pushed data that satisfies pubkey criteria (65 or 33 bytes length and first byte parseable by CPubKey::GetLen()
+        std::vector<ranges::iterator_range<const unsigned char *>> pubkeyCandidates;
+
+        while (scriptView.GetOp(pc, opcode, vchSig)) {
+            if ((vchSig.size() == 65 || vchSig.size() == 33)
+                && blocksci::CPubKey::GetLen(vchSig[0]) == vchSig.size()) {
+                pubkeyCandidates.push_back(vchSig);
             }
         }
-        assert(vchSig.size() == 65 || vchSig.size() == 33);
-        std::copy(vchSig.begin(), vchSig.end(), pubkey.begin());
+
+        // use the last pushed data that matches pubkey size
+        // this is done to skip BCH's schnorr signatures, which may also have a length of 65 byte
+        auto &usedPubkey = pubkeyCandidates.back();
+
+        assert(usedPubkey.size() == 65 || usedPubkey.size() == 33);
+        std::copy(usedPubkey.begin(), usedPubkey.end(), pubkey.begin());
     } else {
         auto &pubkeyWitness = inputView.witnessStack[1];
         std::copy(reinterpret_cast<const unsigned char *>(pubkeyWitness.itemBegin), reinterpret_cast<const unsigned char *>(pubkeyWitness.itemBegin) + pubkeyWitness.length, pubkey.begin());
