@@ -207,7 +207,7 @@ uint256 compute_txdata_hash(const Blockchain &chain, bool withAddrString) {
 
                 auto spendingTxIndex = output.getSpendingTxIndex();
                 if (spendingTxIndex) {
-                    SHA256_Update(&sha256, &spendingTxIndex, sizeof(spendingTxIndex));
+                    SHA256_Update(&sha256, &(*spendingTxIndex), sizeof(*spendingTxIndex));
                 }
 
                 auto txIndex = output.txIndex();
