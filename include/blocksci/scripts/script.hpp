@@ -47,6 +47,10 @@ namespace blocksci {
         bool hasBeenSpent() const {
             return getTxRevealedIndex().has_value();
         }
+
+        uint32_t getTypesSeen() const {
+            return rawData->typesSeen;
+        }
         
         Transaction getFirstTransaction() const;
         ranges::optional<Transaction> getTransactionRevealed() const;

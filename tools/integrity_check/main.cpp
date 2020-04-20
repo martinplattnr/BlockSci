@@ -118,7 +118,7 @@ uint256 compute_txrawdata_hash(const ChainAccess &access) {
 /**
  Compute a checksum over core transaction data.
  */
-uint256 compute_txdata_hash(const Blockchain &chain) {
+uint256 compute_txdata_hash(const Blockchain &chain, bool withAddrString) {
     uint256 hash;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
@@ -179,8 +179,20 @@ uint256 compute_txdata_hash(const Blockchain &chain) {
                 auto addrType = input.getType();
                 SHA256_Update(&sha256, &addrType, sizeof(addrType));
 
-                auto addrString = input.getAddress().toString();
-                SHA256_Update(&sha256, addrString.data(), addrString.size());
+                if (withAddrString) {
+                    auto addrString = input.getAddress().toString();
+                    SHA256_Update(&sha256, addrString.data(), addrString.size());
+                }
+
+                auto baseScript = input.getAddress().getBaseScript();
+                auto addrTxFirstSeen = baseScript.getFirstTxIndex();
+                SHA256_Update(&sha256, &addrTxFirstSeen, sizeof(addrTxFirstSeen));
+
+                auto addrTxFirstRevealed = baseScript.getTxRevealedIndex().value_or(0);
+                SHA256_Update(&sha256, &addrTxFirstRevealed, sizeof(addrTxFirstRevealed));
+
+                auto addrTypesSeen = baseScript.getTypesSeen();
+                SHA256_Update(&sha256, &addrTypesSeen, sizeof(addrTypesSeen));
 
                 auto value = input.getValue();
                 SHA256_Update(&sha256, &value, sizeof(value));
@@ -210,8 +222,21 @@ uint256 compute_txdata_hash(const Blockchain &chain) {
                 auto addrType = output.getType();
                 SHA256_Update(&sha256, &addrType, sizeof(addrType));
 
-                auto addrString = output.getAddress().toString();
-                SHA256_Update(&sha256, addrString.data(), addrString.size());
+                if (withAddrString) {
+                    auto addrString = output.getAddress().toString();
+                    SHA256_Update(&sha256, addrString.data(), addrString.size());
+                }
+
+                auto baseScript = output.getAddress().getBaseScript();
+
+                auto addrTxFirstSeen = baseScript.getFirstTxIndex();
+                SHA256_Update(&sha256, &addrTxFirstSeen, sizeof(addrTxFirstSeen));
+
+                auto addrTxFirstRevealed = baseScript.getTxRevealedIndex().value_or(0);
+                SHA256_Update(&sha256, &addrTxFirstRevealed, sizeof(addrTxFirstRevealed));
+
+                auto addrTypesSeen = baseScript.getTypesSeen();
+                SHA256_Update(&sha256, &addrTypesSeen, sizeof(addrTypesSeen));
 
                 auto value = output.getValue();
                 SHA256_Update(&sha256, &value, sizeof(value));
@@ -511,15 +536,17 @@ int main(int argc, char * argv[]) {
     auto block_hash = compute_block_hash(chain);
     std::cout << block_hash.GetHex() << std::endl;
 
+    std::cout << std::endl << "Transactions (API w/o address strings):" << std::endl;
+    auto txdata_hash_no_addr_str = compute_txdata_hash(chain, false);
+    std::cout << txdata_hash_no_addr_str.GetHex() << std::endl;
 
-    std::cout << std::endl << "Transactions (API):" << std::endl;
-    auto txdata_hash = compute_txdata_hash(chain);
-    std::cout << txdata_hash.GetHex() << std::endl;
+    std::cout << std::endl << "Transactions (API w/ address strings):" << std::endl;
+    auto txdata_hash_with_addr_str = compute_txdata_hash(chain, true);
+    std::cout << txdata_hash_with_addr_str.GetHex() << std::endl;
 
     std::cout << std::endl << "Transactions (raw data):" << std::endl;
     auto txrawdata_hash = compute_txrawdata_hash(chainAccess);
     std::cout << txrawdata_hash.GetHex() << std::endl;
-
 
     std::cout << std::endl << "Additional data:" << std::endl;
     auto additional_data_hash = compute_additional_data_hash(dataAccess);
