@@ -125,6 +125,7 @@ int main(int argc, char * argv[]) {
     std::cout << "Max Output = (" << maxOutput1 << ", " << maxOutput2 << ")" << std::endl;
     std::cout << "Max Input = (" << maxInput1 << ", " << maxInput2 << ")" << std::endl;
     std::cout << "Max Fee = (" << maxFee1 << ", " << maxFee2 << ")" << std::endl;
+    std::cout << "Version > 1 = (" << version1 << ", " << version2 << ")" << std::endl;
     //std::cout << "Max Addr First Seen = (" << maxFirstSeen << ")" << std::endl;
     //std::cout << "Max Addr First Revealed = (" << maxFirstRevealed << ")" << std::endl;
     if(maxSatoshiDiceOutput >= 0) {
