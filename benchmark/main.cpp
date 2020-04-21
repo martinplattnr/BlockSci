@@ -87,8 +87,8 @@ int main(int argc, char * argv[]) {
     auto version1 = timeFunc("versionGreaterOneSingleThreaded", calculateVersionGreaterOneSingleThreaded, iterations, chain);
     auto version2 = timeFunc("versionGreaterOneMultithreaded", calculateVersionGreaterOneMultithreaded, iterations, chain);
 
-    auto maxFirstSeen = timeFunc("calculateMaxAddrFirstSeen", calculateMaxAddrFirstSeen, iterations, chain);
-    auto maxFirstRevealed = timeFunc("calculateMaxAddrFirstRevealed", calculateMaxAddrFirstRevealed, iterations, chain);
+    //auto maxFirstSeen = timeFunc("maxAddrFirstSeen", calculateMaxAddrFirstSeen, iterations, chain);
+    //auto maxFirstRevealed = timeFunc("maxAddrFirstRevealed", calculateMaxAddrFirstRevealed, iterations, chain);
 
     // Graph traversal queries
     uint32_t uniqueLocktimeSingle = 0;
@@ -125,7 +125,8 @@ int main(int argc, char * argv[]) {
     std::cout << "Max Output = (" << maxOutput1 << ", " << maxOutput2 << ")" << std::endl;
     std::cout << "Max Input = (" << maxInput1 << ", " << maxInput2 << ")" << std::endl;
     std::cout << "Max Fee = (" << maxFee1 << ", " << maxFee2 << ")" << std::endl;
-    std::cout << "Version > 1 = (" << version1 << ", " << version2 << ")" << std::endl;
+    //std::cout << "Max Addr First Seen = (" << maxFirstSeen << ")" << std::endl;
+    //std::cout << "Max Addr First Revealed = (" << maxFirstRevealed << ")" << std::endl;
     if(maxSatoshiDiceOutput >= 0) {
         std::cout << "SatoshiDice Output Value = (" << maxSatoshiDiceOutput << ")" << std::endl;
     }
