@@ -17,6 +17,7 @@
 #include <blocksci/core/raw_transaction.hpp>
 
 #include <range/v3/utility/optional.hpp>
+#include <limits>
 
 namespace std {
     template<> struct BLOCKSCI_EXPORT hash<blocksci::Output> {
@@ -31,26 +32,29 @@ namespace blocksci {
         /** Pointer to Inout that represents this Input (Inout consists of linkedTxNum, scriptNum, type, and value) */
         const Inout *inout;
 
-        /** Tx number of the transaction that spends this Output; 0 if still unspent (at the loaded block height) */
-        uint32_t spendingTxIndex;
+        /** Tx number of the transaction that spends this Output
+         * 0 if still unspent (at the loaded block height)
+         * std::numeric_limits<uint32_t>::max() if not yet set
+         */
+        mutable uint32_t spendingTxIndex = std::numeric_limits<uint32_t>::max();
+        uint32_t maxTxLoaded;
 
         mutable BlockHeight blockHeight = -1;
         friend size_t std::hash<Output>::operator()(const Output &) const;
 
-        void setSpendingTxIndex(uint32_t maxTxLoaded);
+        void setSpendingTxIndex() const;
     public:
         /** Contains data to uniquely identify one output using chainId, txNum, and inoutNum */
         OutputPointer pointer;
         
-        Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded, DataAccess &access_)
-            : access(&access_), inout(&inout_), blockHeight(blockHeight_), pointer(pointer_) {
+        Output(const OutputPointer &pointer_, BlockHeight blockHeight_, const Inout &inout_, uint32_t maxTxLoaded_, DataAccess &access_)
+            : access(&access_), inout(&inout_), maxTxLoaded(maxTxLoaded_), blockHeight(blockHeight_), pointer(pointer_) {
             /* the following check should be active, but requires moving the constructor's definition to the cpp file (hurts performance?)
              * should be ok that check is disabled as this constructor is only used by OutputRange, which is single-chain anyway
              */
             /* if (pointer.chainId != access->chainId) {
                 throw std::runtime_error("This method currently only supports single-chain access");
             } */
-            setSpendingTxIndex(maxTxLoaded);
         }
         
         Output(const OutputPointer &pointer_, DataAccess &access_);
@@ -63,6 +67,9 @@ namespace blocksci {
 
         /** Get the tx number of the tx that spends this output (in one of its inputs) */
         ranges::optional<uint32_t> getSpendingTxIndex() const {
+            if (spendingTxIndex == std::numeric_limits<uint32_t>::max()) {
+                setSpendingTxIndex();
+            }
             return spendingTxIndex > 0 ? ranges::optional<uint32_t>{spendingTxIndex} : ranges::nullopt;
         }
         
@@ -78,7 +85,7 @@ namespace blocksci {
         Block block() const;
         
         bool isSpent() const {
-            return spendingTxIndex > 0u;
+            return getSpendingTxIndex().value_or(0) > 0u;
         }
         
         bool operator==(const Inout &other) const {

@@ -24,11 +24,9 @@ namespace blocksci {
 
         access = &access_;
         inout = &access_.getChain().getTx(pointer_.txNum)->getOutput(pointer_.inoutNum);
+        maxTxLoaded = static_cast<uint32_t>(access_.getChain().txCount());
         blockHeight = -1;
         pointer = pointer_;
-        auto maxTxLoaded = static_cast<uint32_t>(access_.getChain().txCount());
-
-        setSpendingTxIndex(maxTxLoaded);
     }
     
     Transaction Output::transaction() const {
@@ -94,14 +92,11 @@ namespace blocksci {
     
     std::string Output::toString() const {
         std::stringstream ss;
-        ss << "TxOut(spending_tx_index=" << spendingTxIndex << ", address=" << getAddress().toString() << ", value=" << inout->getValue() << ")";
+        ss << "TxOut(spending_tx_index=" << getSpendingTxIndex().value_or(0) << ", address=" << getAddress().toString() << ", value=" << inout->getValue() << ")";
         return ss.str();
     }
 
-    void Output::setSpendingTxIndex(uint32_t maxTxLoaded) {
-        //uint32_t spendingTxIndexTmp = *access->getChain().getPreForkLinkedTxNum(this->pointer.txNum, this->pointer.inoutNum);
-        //std::cout << "spendingTxIndexTmp=" << spendingTxIndexTmp << "| inout->getLinkedTxNum()=" << inout->getLinkedTxNum() << std::endl;
-
+    void Output::setSpendingTxIndex() const {
         uint32_t spendingTxIndexTmp;
         if (pointer.txNum >= access->getChain().firstForkedTxIndex) {
             // Output was created after the fork -> use Inout.linkedTxNum
@@ -110,7 +105,6 @@ namespace blocksci {
         else {
             // Output was created before the fork -> use separate file
             spendingTxIndexTmp = *access->getChain().getPreForkLinkedTxNum(this->pointer.txNum, this->pointer.inoutNum);
-            //std::cout << "using value from separate file: " << spendingTxIndexTmp << std::endl;
         }
 
         if (spendingTxIndexTmp < maxTxLoaded) {
@@ -118,12 +112,6 @@ namespace blocksci {
         } else {
             spendingTxIndex = 0;
         }
-
-        /*
-        if (access->getChain().hasParentChain() && blockHeight < access->getChain().getFirstForkedBlockHeight()) {
-            uint32_t spendingTxIndexTmp = access->getChain().getForkTxIndex();
-        }
-        */
     }
 
     std::ostream &operator<<(std::ostream &os, const Output &output) {
