@@ -447,7 +447,7 @@ std::vector<std::function<void(RawTransaction &tx)>> SerializeAddressesStep::ste
                 /* mark the existing (serialized) address as seen for the given address type
                  * may add additional information, eg. the pubkey to an address that so far only appeared as P2PKH,
                  * and now a P2PK output (which contains the pubkey) comes along */
-                addressWriter.serializeExistingOutput(scriptOutput, true);
+                addressWriter.serializeExistingOutput(scriptOutput, tx.txNum, true);
             }
         }
         

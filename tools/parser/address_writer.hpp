@@ -107,17 +107,40 @@ public:
             if (wrappedOutput.isNew) {
                 serializeNewOutput(wrappedOutput, txNum, false);
             } else {
-                serializeExistingOutput(wrappedOutput, false);
+                serializeExistingOutput(wrappedOutput, txNum, false);
             }
         });
         return dataFile.size();
     }
     
     template<blocksci::AddressType::Enum type>
-    void serializeExistingOutput(const ScriptOutput<type> &output, bool topLevel) {
+    void serializeExistingOutput(const ScriptOutput<type> &output, uint32_t txNum, bool topLevel) {
         assert(!output.isNew);
         auto &dataFile = std::get<ScriptFile<dedupType(type)>>(scriptFiles);
         auto &headerFile = std::get<ScriptHeaderFile<dedupType(type)>>(scriptHeaderFiles);
+
+
+        /* This fixes a (rather uncommon) edge-case, where an address that existed before the fork is used with an equivalent type after the fork on the main chain.
+         * E.g., a pubkey address pre-fork, and a multisig-pubkey address after-fork.
+         * When parsing the forked chain, this address is correctly resolved as "existing", but this causes that ScriptHeader.txFirstSeen and ScriptHeader.typesSeen is not updated.
+         */
+        auto header = headerFile.getDataAtIndex(output.scriptNum - 1);
+        if (txNum < header->txFirstSeen) {
+            header->txFirstSeen = txNum;
+            // typesSeen is set in serializeOutputImp()
+        }
+        // see comment above
+        output.data.visitWrapped([&](auto &wrappedOutput) {
+            auto &headerFile = std::get<ScriptHeaderFile<dedupType(wrappedOutput.address_v)>>(scriptHeaderFiles);
+            auto header = headerFile.getDataAtIndex(wrappedOutput.scriptNum - 1);
+            header->saw(wrappedOutput.address_v, false);
+
+            if ( ! header->hasBeenSeen()) {
+                header->txFirstSeen = txNum;
+            }
+        });
+
+
         serializeOutputImp(output, dataFile, headerFile, topLevel);
     }
     
@@ -129,15 +152,20 @@ public:
         /** Default value of ScriptDataBase.txFirstSpent is (std::numeric_limits<uint32_t>::max()) */
         bool isFirstSpend = header->txFirstSpent == std::numeric_limits<uint32_t>::max();
 
+        /** Can occur when a wrapped input is serialized before the top-level input */
+        bool isNewerFirstSpend = txNum < header->txFirstSpent;
+
         /** Default value of ScriptDataBase.txFirstSeen is the txNum of the transaction that contained the script */
         bool isNewerFirstSeen = outputTxNum < header->txFirstSeen;
 
         if (isNewerFirstSeen) {
             header->txFirstSeen = outputTxNum;
         }
+        if (isNewerFirstSpend) {
+            header->txFirstSpent = txNum;
+        }
         if (isFirstSpend) {
             auto &file = std::get<ScriptFile<dedupType(type)>>(scriptFiles);
-            header->txFirstSpent = txNum;
             serializeInputImp(input, file);
         }
     }
@@ -145,7 +173,7 @@ public:
     void rollback(const blocksci::State &state);
     
     blocksci::OffsetType serializeNewOutput(const AnyScriptOutput &output, uint32_t txNum, bool topLevel);
-    void serializeExistingOutput(const AnyScriptOutput &output, bool topLevel);
+    void serializeExistingOutput(const AnyScriptOutput &output, uint32_t txNum, bool topLevel);
     
     void serializeInput(const AnyScriptInput &input, uint32_t txNum, uint32_t outputTxNum);
     void serializeWrappedInput(const AnyScriptInput &input, uint32_t txNum, uint32_t outputTxNum);

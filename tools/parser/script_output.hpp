@@ -35,9 +35,7 @@ struct ScriptOutput {
         auto addressInfo = state.findAddress(data);
         std::tie(scriptNum, isNew) = state.resolveAddress(addressInfo);
         assert(scriptNum > 0);
-        if (isNew) {
-            data.visitWrapped([&](auto &output) { output.resolve(state); });
-        }
+        data.visitWrapped([&](auto &output) { output.resolve(state); });
         return scriptNum;
     }
     

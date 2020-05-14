@@ -61,6 +61,10 @@ namespace blocksci {
             return getTxRevealedIndex().has_value();
         }
 
+        uint32_t getTypesSeen() const {
+            return rawHeader->typesSeen;
+        }
+
         ranges::optional<Transaction> getFirstTransaction() const;
         ranges::optional<Transaction> getTransactionRevealed() const;
     };
