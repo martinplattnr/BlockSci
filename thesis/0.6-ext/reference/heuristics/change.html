@@ -1,0 +1,361 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Change Address Heuristics &mdash; BlockSci 0.6.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Other Heuristics" href="other_heuristics.html" />
+    <link rel="prev" title="Heuristics" href="heuristics.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> BlockSci
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.6.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">BlockSci</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../compiling.html">Compiling BlockSci</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Local setup</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../reference.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../chain/chain.html">Chain Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../addresses/addresses.html">Address Classes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="heuristics.html">Heuristics</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Change Address Heuristics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#static-heuristics">Static Heuristics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dynamic-heuristics">Dynamic Heuristics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#utility-heuristics">Utility Heuristics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-composition-operators">Using Composition Operators</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="other_heuristics.html">Other Heuristics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../clustering/clustering.html">Clustering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../other/other.html">Other Utility Classes</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">BlockSci</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../reference.html">Reference</a> &raquo;</li>
+        
+          <li><a href="heuristics.html">Heuristics</a> &raquo;</li>
+        
+      <li>Change Address Heuristics</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../../_sources/reference/heuristics/change.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="change-address-heuristics">
+<h1>Change Address Heuristics<a class="headerlink" href="#change-address-heuristics" title="Permalink to this headline">¶</a></h1>
+<p>BlockSci supports a number of different heuristics for determining the change address for a given transaction.
+The heuristics are sometimes contradictory and thus we provide users with the ability to choose which heuristics they wish to apply.
+Further, you can combine different change address heuristics through the various composition operators of the <a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic"><code class="xref py py-class docutils literal notranslate"><span class="pre">blocksci.heuristics.change.ChangeHeuristic</span></code></a> class.</p>
+<dl class="py class">
+<dt id="blocksci.heuristics.change">
+<em class="property">class </em><code class="sig-prename descclassname">blocksci.heuristics.</code><code class="sig-name descname">change</code><a class="headerlink" href="#blocksci.heuristics.change" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py class">
+<dt id="blocksci.heuristics.change.ChangeHeuristic">
+<em class="property">class </em><code class="sig-name descname">ChangeHeuristic</code><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing a change heuristic</p>
+<dl class="py method">
+<dt id="blocksci.heuristics.change.ChangeHeuristic.__and__">
+<code class="sig-name descname">__and__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other_heuristic</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic.__and__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new heuristic matching outputs that match both of the given heuristics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="blocksci.heuristics.change.ChangeHeuristic.__call__">
+<em class="property">property </em><code class="sig-name descname">__call__</code><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all outputs matching the change heuristic</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="blocksci.heuristics.change.ChangeHeuristic.__or__">
+<code class="sig-name descname">__or__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other_heuristic</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic.__or__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new heuristic matching outputs that match either of the given heuristics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="blocksci.heuristics.change.ChangeHeuristic.__sub__">
+<code class="sig-name descname">__sub__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other_heuristic</span><span class="p">:</span> <span class="n"><a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#blocksci.heuristics.change.ChangeHeuristic" title="blocksci.heuristics.change.ChangeHeuristic">blocksci.heuristics.change.ChangeHeuristic</a><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic.__sub__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new heuristic matching outputs matched by the first heuristic unless they’re matched by the second heuristic</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="blocksci.heuristics.change.ChangeHeuristic.unique_change">
+<em class="property">property </em><code class="sig-name descname">unique_change</code><a class="headerlink" href="#blocksci.heuristics.change.ChangeHeuristic.unique_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new heuristic that will return a single output if it’s the only candidate output, and no outputs otherwise.</p>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="static-heuristics">
+<h2>Static Heuristics<a class="headerlink" href="#static-heuristics" title="Permalink to this headline">¶</a></h2>
+<p>Static heuristics do not depend on the outputs being spent. They will always return the same result.</p>
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.address_reuse">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">address_reuse</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.address_reuse" title="Permalink to this definition">¶</a></dt>
+<dd><p>If input addresses appear as an output address, the client might have reused addresses for change.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.address_type">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">address_type</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.address_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>If all inputs are of one address type (e.g., P2PKH or P2SH), it is likely that the change output has the same type.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.optimal_change">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">optimal_change</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.optimal_change" title="Permalink to this definition">¶</a></dt>
+<dd><p>If there exists an output that is smaller than any of the inputs it is likely the change. If a change output was larger than the smallest input, then the coin selection algorithm wouldn’t need to add the input in the first place.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="blocksci.heuristics.change.power_of_ten_value">
+<code class="sig-prename descclassname">blocksci.heuristics.change.</code><code class="sig-name descname">power_of_ten_value</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">digits</span></em>, <em class="sig-param"><span class="n">tx</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#blocksci.heuristics.change.power_of_ten_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Detects possible change outputs by excluding output values that are multiples of 10^`digits`, as such values are unlikely to occur randomly.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="dynamic-heuristics">
+<h2>Dynamic Heuristics<a class="headerlink" href="#dynamic-heuristics" title="Permalink to this headline">¶</a></h2>
+<p>Dynamic heuristics depend on the state of the blockchain. If outputs of a transaction are spent, the results returned by the following heuristics can change.</p>
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.client_change_address_behavior">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">client_change_address_behavior</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.client_change_address_behavior" title="Permalink to this definition">¶</a></dt>
+<dd><p>Most clients will generate a fresh address for the change. If an output is the first to send value to an address, it is potentially the change.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.legacy">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">legacy</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.legacy" title="Permalink to this definition">¶</a></dt>
+<dd><p>The original change address heuristic that was the default used in BlockSci before version 0.6. It consists of the intersection of the optimal change heuristic and the client address behavior heuristic</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.locktime">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">locktime</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.locktime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bitcoin Core sets the locktime to the current block height to prevent fee sniping. If an output has been spent and it matches this transaction’s locktime behavior, it is possibly the change output.
+(This heuristic will return unspent outputs as potential candidates.)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.peeling_chain">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">peeling_chain</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.peeling_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the transaction is a peeling chain, returns the outputs that continue the peeling chain.
+(This heuristic will return unspent outputs as potential candidates.)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="utility-heuristics">
+<h2>Utility Heuristics<a class="headerlink" href="#utility-heuristics" title="Permalink to this headline">¶</a></h2>
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.none">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">none</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.none" title="Permalink to this definition">¶</a></dt>
+<dd><p>This heuristics will never return any outputs, allowing it to be used to disable clustering based on change addresses.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="blocksci.heuristics.change.spent">
+<code class="sig-prename descclassname">change.</code><code class="sig-name descname">spent</code><em class="property"> = &lt;blocksci.heuristics.change.ChangeHeuristic object&gt;</em><a class="headerlink" href="#blocksci.heuristics.change.spent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns outputs that have been spent. Useful to exclude unspent outputs from dynamic heuristics that return unspent outputs as potential change outputs.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="using-composition-operators">
+<h2>Using Composition Operators<a class="headerlink" href="#using-composition-operators" title="Permalink to this headline">¶</a></h2>
+<p>You can use the union (<cite>|</cite>), intersection (<cite>&amp;</cite>) and difference (<cite>-</cite>) operators to combine existing change address heuristics into new ones. This also works with <cite>unique_change</cite>.
+For example, the following heuristic would return a single change output only if the address reuse and the optimal change heuristics agree on a unique change output:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">blocksci</span><span class="o">.</span><span class="n">heuristics</span><span class="o">.</span><span class="n">change</span><span class="o">.</span><span class="n">address_reuse</span><span class="o">.</span><span class="n">unique_change</span> <span class="o">&amp;</span> <span class="n">blocksci</span><span class="o">.</span><span class="n">heuristics</span><span class="o">.</span><span class="n">change</span><span class="o">.</span><span class="n">optimal_change</span><span class="o">.</span><span class="n">unique_change</span>
+</pre></div>
+</div>
+<p>Similarly, if you want to remove unspent outputs from the output candidates returned by the <a class="reference internal" href="#blocksci.heuristics.change.locktime" title="blocksci.heuristics.change.locktime"><code class="xref py py-attr docutils literal notranslate"><span class="pre">blocksci.heuristics.change.locktime</span></code></a> heuristics, you can do the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">blocksci</span><span class="o">.</span><span class="n">heuristics</span><span class="o">.</span><span class="n">change</span><span class="o">.</span><span class="n">locktime</span> <span class="o">&amp;</span> <span class="n">blocksci</span><span class="o">.</span><span class="n">heuristics</span><span class="o">.</span><span class="n">change</span><span class="o">.</span><span class="n">spent</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="other_heuristics.html" class="btn btn-neutral float-right" title="Other Heuristics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="heuristics.html" class="btn btn-neutral float-left" title="Heuristics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, Harry Kalodner
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
